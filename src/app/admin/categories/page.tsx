@@ -1,0 +1,269 @@
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
+import { Plus, Trash2, Loader2, Grid3X3 } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
+import { ImageUpload } from '@/components/admin/ImageUpload';
+
+interface Category {
+    _id: string;
+    name: string;
+    slug: string;
+    image: string;
+    createdAt: string;
+}
+
+interface FormData {
+    name: string;
+}
+
+export default function CategoriesPage() {
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [deleting, setDeleting] = useState<string | null>(null);
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [imageUrl, setImageUrl] = useState('');
+    const [error, setError] = useState<string | null>(null);
+
+    const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>();
+
+    useEffect(() => {
+        fetchCategories();
+    }, []);
+
+    async function fetchCategories() {
+        try {
+            const res = await fetch('/api/categories');
+            const data = await res.json();
+            setCategories(Array.isArray(data) ? data : []);
+        } catch (err) {
+            console.error('Error fetching categories:', err);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    async function onSubmit(data: FormData) {
+        setSaving(true);
+        setError(null);
+
+        try {
+            const res = await fetch('/api/categories', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: data.name,
+                    image: imageUrl,
+                }),
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || 'Failed to create category');
+            }
+
+            await fetchCategories();
+            reset();
+            setImageUrl('');
+            setDialogOpen(false);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to create category');
+        } finally {
+            setSaving(false);
+        }
+    }
+
+    async function deleteCategory(id: string) {
+        if (!confirm('Are you sure you want to delete this category?')) return;
+
+        setDeleting(id);
+        try {
+            const res = await fetch(`/api/categories/${id}`, {
+                method: 'DELETE',
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || 'Failed to delete category');
+            }
+
+            await fetchCategories();
+        } catch (err) {
+            alert(err instanceof Error ? err.message : 'Failed to delete category');
+        } finally {
+            setDeleting(null);
+        }
+    }
+
+    return (
+        <div className="space-y-6">
+            <div className="flex items-center justify-between">
+                <div>
+                    <h2 className="text-2xl font-bold text-white">Categories</h2>
+                    <p className="text-zinc-400">Manage your menu categories</p>
+                </div>
+
+                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                    <DialogTrigger asChild>
+                        <Button className="bg-orange-500 hover:bg-orange-600">
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Category
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="bg-zinc-900 border-zinc-800 text-white">
+                        <DialogHeader>
+                            <DialogTitle>Create New Category</DialogTitle>
+                        </DialogHeader>
+                        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                            <div className="space-y-2">
+                                <Label htmlFor="name">Category Name</Label>
+                                <Input
+                                    id="name"
+                                    placeholder="e.g., Burgers, Drinks, Sides"
+                                    className="bg-zinc-800 border-zinc-700 text-white"
+                                    {...register('name', { required: 'Category name is required' })}
+                                />
+                                {errors.name && (
+                                    <p className="text-red-500 text-sm">{errors.name.message}</p>
+                                )}
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>Category Image</Label>
+                                <ImageUpload value={imageUrl} onChange={setImageUrl} disabled={saving} />
+                            </div>
+
+                            {error && (
+                                <p className="text-red-500 text-sm">{error}</p>
+                            )}
+
+                            <div className="flex justify-end gap-3">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setDialogOpen(false)}
+                                    className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    disabled={saving}
+                                    className="bg-orange-500 hover:bg-orange-600"
+                                >
+                                    {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                                    Create Category
+                                </Button>
+                            </div>
+                        </form>
+                    </DialogContent>
+                </Dialog>
+            </div>
+
+            <Card className="bg-zinc-900 border-zinc-800">
+                <CardHeader>
+                    <CardTitle className="text-white flex items-center">
+                        <Grid3X3 className="h-5 w-5 mr-2 text-orange-500" />
+                        All Categories
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {loading ? (
+                        <div className="flex items-center justify-center py-12">
+                            <Loader2 className="h-8 w-8 text-orange-500 animate-spin" />
+                        </div>
+                    ) : categories.length === 0 ? (
+                        <div className="text-center py-12">
+                            <Grid3X3 className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
+                            <p className="text-zinc-400">No categories yet</p>
+                            <p className="text-zinc-500 text-sm">
+                                Create your first category to get started
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="border-zinc-800 hover:bg-transparent">
+                                        <TableHead className="text-zinc-400">Image</TableHead>
+                                        <TableHead className="text-zinc-400">Name</TableHead>
+                                        <TableHead className="text-zinc-400">Slug</TableHead>
+                                        <TableHead className="text-zinc-400 text-right">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {categories.map((category) => (
+                                        <TableRow
+                                            key={category._id}
+                                            className="border-zinc-800 hover:bg-zinc-800/50"
+                                        >
+                                            <TableCell>
+                                                <div className="w-12 h-12 rounded-lg overflow-hidden bg-zinc-800">
+                                                    {category.image ? (
+                                                        <Image
+                                                            src={category.image}
+                                                            alt={category.name}
+                                                            width={48}
+                                                            height={48}
+                                                            className="object-cover w-full h-full"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center">
+                                                            <Grid3X3 className="h-5 w-5 text-zinc-600" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="text-white font-medium">
+                                                {category.name}
+                                            </TableCell>
+                                            <TableCell className="text-zinc-400">
+                                                {category.slug}
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                                                    onClick={() => deleteCategory(category._id)}
+                                                    disabled={deleting === category._id}
+                                                >
+                                                    {deleting === category._id ? (
+                                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                                    ) : (
+                                                        <Trash2 className="h-4 w-4" />
+                                                    )}
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+        </div>
+    );
+}
