@@ -63,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 throw new Error('Failed to sync user with backend');
             }
 
-            router.push('/profile');
+            router.replace('/profile');
         } catch (error) {
             console.error("Error signing in with Google", error);
         }
@@ -73,7 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
             await signOut(auth);
             // Also clear backend session cookie if applicable
-            router.push('/login');
+            router.replace('/login');
         } catch (error) {
             console.error("Error signing out", error);
         }

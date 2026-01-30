@@ -15,7 +15,7 @@ export default function LoginPage() {
 
     useEffect(() => {
         if (user) {
-            router.push("/profile");
+            router.replace("/profile");
         }
     }, [user, router]);
 

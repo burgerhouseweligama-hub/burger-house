@@ -14,8 +14,12 @@ import {
     Loader2,
     Star,
     ShoppingBag,
+    Bell,
+    Search,
+    User
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const sidebarItems = [
     { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
@@ -87,10 +91,14 @@ export default function AdminLayout({
     // Show loading for protected routes
     if (isLoading && !isPublicPath) {
         return (
-            <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+            <div className="min-h-screen bg-black flex items-center justify-center">
                 <div className="text-center">
-                    <Loader2 className="h-10 w-10 text-orange-500 animate-spin mx-auto mb-4" />
-                    <p className="text-zinc-400">Loading...</p>
+                    <div className="relative w-20 h-20 mx-auto mb-8">
+                        <div className="absolute inset-0 bg-orange-500/20 rounded-full blur-xl animate-pulse"></div>
+                        <div className="relative bg-zinc-900 rounded-full p-4 border border-zinc-800">
+                            <Loader2 className="h-10 w-10 text-orange-500 animate-spin" />
+                        </div>
+                    </div>
                 </div>
             </div>
         );
@@ -107,11 +115,16 @@ export default function AdminLayout({
     }
 
     return (
-        <div className="min-h-screen bg-zinc-950">
+        <div className="min-h-screen bg-black selection:bg-orange-500/30">
+            {/* Background ambient glow */}
+            <div className="fixed inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-screen h-[50vh] bg-[radial-gradient(ellipse_at_top,_rgba(249,115,22,0.15)_0%,_transparent_60%)]" />
+            </div>
+
             {/* Mobile sidebar backdrop */}
             {sidebarOpen && (
                 <div
-                    className="fixed inset-0 bg-black/60 z-40 lg:hidden"
+                    className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 lg:hidden transition-all duration-300"
                     onClick={() => setSidebarOpen(false)}
                 />
             )}
@@ -119,24 +132,27 @@ export default function AdminLayout({
             {/* Sidebar */}
             <aside
                 className={`
-          fixed top-0 left-0 z-50 h-full w-64 bg-zinc-900 border-r border-zinc-800
-          transform transition-transform duration-200 ease-in-out
+          fixed top-0 left-0 z-50 h-full w-72 bg-zinc-900/50 backdrop-blur-xl border-r border-white/5
+          transform transition-transform duration-300 cubic-bezier(0.4, 0, 0.2, 1)
           lg:translate-x-0
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
             >
                 {/* Logo */}
-                <div className="flex items-center justify-between h-16 px-6 border-b border-zinc-800">
-                    <Link href="/admin" className="flex items-center space-x-2">
-                        <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
-                            <span className="text-white font-bold text-sm">BH</span>
+                <div className="h-24 flex items-center px-8 border-b border-white/5">
+                    <Link href="/admin" className="flex items-center gap-4 group">
+                        <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20 group-hover:scale-105 transition-transform duration-300">
+                            <span className="text-white font-bold text-lg">BH</span>
                         </div>
-                        <span className="text-white font-semibold text-lg">Admin</span>
+                        <div className="flex flex-col">
+                            <span className="text-white font-bold text-lg tracking-wide group-hover:text-orange-400 transition-colors">Admin</span>
+                            <span className="text-xs text-zinc-500 font-medium">Dashboard</span>
+                        </div>
                     </Link>
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="lg:hidden text-zinc-400"
+                        className="lg:hidden ml-auto text-zinc-400 hover:text-white"
                         onClick={() => setSidebarOpen(false)}
                     >
                         <X className="h-5 w-5" />
@@ -144,86 +160,118 @@ export default function AdminLayout({
                 </div>
 
                 {/* Navigation */}
-                <nav className="p-4 space-y-2">
-                    {sidebarItems.map((item) => {
-                        const isActive =
-                            pathname === item.href ||
-                            (item.href !== '/admin' && pathname.startsWith(item.href));
+                <div className="flex flex-col h-[calc(100%-6rem)] justify-between p-6">
+                    <nav className="space-y-2">
+                        <p className="px-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-4">Menu</p>
+                        {sidebarItems.map((item) => {
+                            const isActive =
+                                pathname === item.href ||
+                                (item.href !== '/admin' && pathname.startsWith(item.href));
 
-                        return (
-                            <Link
-                                key={item.href}
-                                href={item.href}
-                                className={`
-                  flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors
-                  ${isActive
-                                        ? 'bg-orange-500/20 text-orange-500'
-                                        : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
-                                    }
-                `}
-                            >
-                                <item.icon className="h-5 w-5" />
-                                <span className="font-medium">{item.name}</span>
-                            </Link>
-                        );
-                    })}
-                </nav>
+                            return (
+                                <Link
+                                    key={item.href}
+                                    href={item.href}
+                                    className={`
+                                      relative flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-300 group
+                                      ${isActive
+                                            ? 'bg-gradient-to-r from-orange-500/10 to-transparent text-orange-400 font-medium'
+                                            : 'text-zinc-400 hover:text-white hover:bg-white/5'
+                                        }
+                                    `}
+                                >
+                                    {isActive && (
+                                        <div className="absolute left-0 w-1 h-6 bg-orange-500 rounded-r-full shadow-[0_0_12px_rgba(249,115,22,0.5)]" />
+                                    )}
+                                    <item.icon className={`h-5 w-5 transition-transform duration-300 group-hover:scale-110 ${isActive ? 'text-orange-500' : 'text-zinc-500 group-hover:text-white'}`} />
+                                    <span>{item.name}</span>
+                                </Link>
+                            );
+                        })}
+                    </nav>
 
-                {/* Bottom section */}
-                <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-zinc-800 space-y-2">
-                    <Link
-                        href="/"
-                        className="flex items-center space-x-3 px-4 py-3 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
-                    >
-                        <Home className="h-5 w-5" />
-                        <span className="font-medium">Back to Site</span>
-                    </Link>
-                    <button
-                        onClick={handleLogout}
-                        disabled={loggingOut}
-                        className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
-                    >
-                        {loggingOut ? (
-                            <Loader2 className="h-5 w-5 animate-spin" />
-                        ) : (
-                            <LogOut className="h-5 w-5" />
-                        )}
-                        <span className="font-medium">Logout</span>
-                    </button>
+                    {/* Bottom section */}
+                    <div className="space-y-2 pt-6 border-t border-white/5">
+                        <p className="px-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Systems</p>
+                        <Link
+                            href="/"
+                            className="flex items-center gap-3 px-4 py-3 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-colors group"
+                        >
+                            <Home className="h-5 w-5 text-zinc-500 group-hover:text-white transition-colors" />
+                            <span className="font-medium">Back to Website</span>
+                        </Link>
+                        <button
+                            onClick={handleLogout}
+                            disabled={loggingOut}
+                            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-all group"
+                        >
+                            {loggingOut ? (
+                                <Loader2 className="h-5 w-5 animate-spin" />
+                            ) : (
+                                <LogOut className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                            )}
+                            <span className="font-medium">Logout</span>
+                        </button>
+                    </div>
                 </div>
             </aside>
 
             {/* Main content area */}
-            <div className="lg:pl-64">
+            <div className="lg:pl-72 transition-all duration-300">
                 {/* Top bar */}
-                <header className="sticky top-0 z-30 h-16 bg-zinc-900/80 backdrop-blur-sm border-b border-zinc-800 flex items-center justify-between px-6">
-                    <div className="flex items-center">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="lg:hidden text-zinc-400 mr-4"
-                            onClick={() => setSidebarOpen(true)}
-                        >
-                            <Menu className="h-5 w-5" />
-                        </Button>
-                        <h1 className="text-white font-semibold">Burger House Admin</h1>
+                <header className="sticky top-0 z-30 h-20 bg-black/50 backdrop-blur-xl border-b border-white/5">
+                    <div className="flex items-center justify-between h-full px-8">
+                        <div className="flex items-center gap-4">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="lg:hidden text-zinc-400 hover:text-white hover:bg-white/5"
+                                onClick={() => setSidebarOpen(true)}
+                            >
+                                <Menu className="h-5 w-5" />
+                            </Button>
+
+                            {/* Search (Visual Only) */}
+                            <div className="hidden md:flex items-center gap-3 px-4 py-2 bg-zinc-900/50 rounded-full border border-white/5 w-64 focus-within:border-orange-500/50 focus-within:ring-1 focus-within:ring-orange-500/50 transition-all">
+                                <Search className="h-4 w-4 text-zinc-500" />
+                                <input
+                                    type="text"
+                                    placeholder="Search..."
+                                    className="bg-transparent border-none outline-none text-sm text-zinc-200 placeholder:text-zinc-600 w-full"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-4">
+                            <button className="relative p-2 text-zinc-400 hover:text-white transition-colors rounded-full hover:bg-white/5">
+                                <Bell className="h-5 w-5" />
+                                <span className="absolute top-2 right-2 w-2 h-2 bg-orange-500 rounded-full border-2 border-black" />
+                            </button>
+
+                            <div className="h-8 w-px bg-white/10 mx-2" />
+
+                            <div className="flex items-center gap-3 pl-2">
+                                <div className="text-right hidden sm:block">
+                                    <p className="text-sm font-medium text-white">Admin User</p>
+                                    <p className="text-xs text-zinc-500">Super Admin</p>
+                                </div>
+                                <Avatar className="h-10 w-10 border-2 border-orange-500/20">
+                                    <AvatarImage src="/avatars/admin.png" />
+                                    <AvatarFallback className="bg-gradient-to-br from-orange-500 to-red-600 text-white font-bold">
+                                        <User className="h-5 w-5" />
+                                    </AvatarFallback>
+                                </Avatar>
+                            </div>
+                        </div>
                     </div>
-                    <button
-                        onClick={handleLogout}
-                        disabled={loggingOut}
-                        className="hidden md:flex items-center gap-2 px-4 py-2 text-sm text-zinc-400 hover:text-red-400 transition-colors"
-                    >
-                        {loggingOut ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                            <LogOut className="h-4 w-4" />
-                        )}
-                        Logout
-                    </button>
                 </header>
 
                 {/* Page content */}
-                <main className="p-6">{children}</main>
+                <main className="p-8">
+                    <div className="max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        {children}
+                    </div>
+                </main>
             </div>
         </div>
     );

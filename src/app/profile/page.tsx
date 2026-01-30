@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Loader2, LogOut, User as UserIcon, ShoppingBag, Calendar, Package } from "lucide-react";
+import { Loader2, LogOut, User as UserIcon, ShoppingBag, Calendar, Package, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -40,9 +40,17 @@ export default function ProfilePage() {
     const [orders, setOrders] = useState<Order[]>([]);
     const [loadingOrders, setLoadingOrders] = useState(true);
 
+    const handleBack = () => {
+        if (typeof window !== 'undefined' && window.history.length > 1) {
+            router.back();
+        } else {
+            router.push("/");
+        }
+    };
+
     useEffect(() => {
         if (!loading && !user) {
-            router.push("/login");
+            router.replace("/login");
         }
     }, [user, loading, router]);
 
@@ -90,8 +98,18 @@ export default function ProfilePage() {
             <div className="max-w-4xl mx-auto space-y-8">
 
                 {/* Header */}
-                <div className="flex items-center justify-between">
-                    <h1 className="text-3xl font-bold text-white">My Profile</h1>
+                <div className="flex items-center justify-between gap-4 flex-wrap">
+                    <div className="flex items-center gap-3">
+                        <Button
+                            variant="outline"
+                            onClick={handleBack}
+                            className="border-zinc-800 text-zinc-300 hover:text-white"
+                        >
+                            <ArrowLeft className="h-4 w-4 mr-2" />
+                            Back
+                        </Button>
+                        <h1 className="text-3xl font-bold text-white">My Profile</h1>
+                    </div>
                     <Button
                         variant="outline"
                         onClick={logout}
