@@ -13,11 +13,13 @@ import {
     LogOut,
     Loader2,
     Star,
+    ShoppingBag,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const sidebarItems = [
     { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+    { name: 'Orders', href: '/admin/orders', icon: ShoppingBag },
     { name: 'Categories', href: '/admin/categories', icon: Grid3X3 },
     { name: 'Products', href: '/admin/products', icon: UtensilsCrossed },
     { name: 'Reviews', href: '/admin/reviews', icon: Star },

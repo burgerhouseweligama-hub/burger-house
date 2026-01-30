@@ -1,11 +1,20 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Oswald, Open_Sans } from "next/font/google";
 import "./globals.css";
 import JsonLd from "@/components/seo/JsonLd";
 
-const inter = Inter({
-  variable: "--font-inter",
+// Heading font - Bold condensed sans-serif for impactful headings
+const oswald = Oswald({
+  variable: "--font-heading",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+
+// Body font - Clean readable sans-serif for body text
+const openSans = Open_Sans({
+  variable: "--font-body",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://whimsical-kelpie-80e090.netlify.app";
@@ -78,7 +87,7 @@ export default function RootLayout({
       <head>
         <JsonLd />
       </head>
-      <body className={`${inter.variable} font-sans antialiased`} suppressHydrationWarning>
+      <body className={`${oswald.variable} ${openSans.variable} font-body antialiased`} suppressHydrationWarning>
         <AuthProvider>
           <CartProvider>
             <ToastProvider>

@@ -1,19 +1,33 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import { ArrowRight, Flame } from "lucide-react";
 import Link from "next/link";
 
-interface HeroSectionProps {
-    // Add any props if needed
-}
+// Total number of frames in the sequence (0-191)
+const TOTAL_FRAMES = 192;
+// Frames to advance/rewind per scroll event
+const FRAMES_PER_SCROLL = 3;
+
+// Generate frame paths
+const getFramePath = (index: number): string => {
+    const paddedIndex = index.toString().padStart(3, "0");
+    // Delay pattern: frames with index % 3 === 1 have 0.041s, all others have 0.042s
+    const delay = index % 3 === 1 ? "0.041s" : "0.042s";
+    return `/burgerzip/frame_${paddedIndex}_delay-${delay}.jpg`;
+};
 
 export default function HeroSection() {
-    const videoRef = useRef<HTMLVideoElement>(null);
     const heroRef = useRef<HTMLDivElement>(null);
-    const [isVideoLoaded, setIsVideoLoaded] = useState(false);
-    const [isVideoComplete, setIsVideoComplete] = useState(false);
-    const [videoProgress, setVideoProgress] = useState(0);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [currentFrame, setCurrentFrame] = useState(0);
+    const [imagesLoaded, setImagesLoaded] = useState(false);
+    const [isSequenceComplete, setIsSequenceComplete] = useState(false);
+    const [progress, setProgress] = useState(0);
+    const imagesRef = useRef<HTMLImageElement[]>([]);
+    const animationRef = useRef<number | null>(null);
+    const targetFrameRef = useRef(0);
+    const currentFrameRef = useRef(0);
 
     // Floating Particles State
     const [particles, setParticles] = useState<
@@ -31,138 +45,154 @@ export default function HeroSection() {
         setParticles(newParticles);
     }, []);
 
-    // Scroll-controlled video logic
-    const isRewindingRef = useRef(false);
-    const rewindFrameRef = useRef<number | null>(null);
-
+    // Preload all images
     useEffect(() => {
-        const video = videoRef.current;
-        if (!video) return;
+        const images: HTMLImageElement[] = [];
+        let loadedCount = 0;
 
-        let interactionTimeout: NodeJS.Timeout;
-        let isPlaying = false;
-
-        // Helper to safely stop playback/rewind
-        const stopPlayback = () => {
-            // Cancel any pending rewind frame
-            if (rewindFrameRef.current) {
-                cancelAnimationFrame(rewindFrameRef.current);
-                rewindFrameRef.current = null;
-            }
-            isRewindingRef.current = false;
-
-            // Pause video if playing
-            if (!video.paused) {
-                video.pause();
-                isPlaying = false;
+        const handleImageLoad = () => {
+            loadedCount++;
+            if (loadedCount === TOTAL_FRAMES) {
+                imagesRef.current = images;
+                setImagesLoaded(true);
+                // Draw the first frame
+                drawFrame(0);
             }
         };
 
-        // Helper to safely play video
-        const startPlayback = () => {
-            if (video.paused && !isPlaying) {
-                isPlaying = true;
-                const playPromise = video.play();
-                if (playPromise !== undefined) {
-                    playPromise.catch((error) => {
-                        // Auto-play was prevented or interrupted
-                        console.log("Video play interrupted:", error);
-                        isPlaying = false;
-                    });
-                }
-            }
+        for (let i = 0; i < TOTAL_FRAMES; i++) {
+            const img = new window.Image();
+            img.src = getFramePath(i);
+            img.onload = handleImageLoad;
+            img.onerror = handleImageLoad; // Count errors too to avoid hanging
+            images[i] = img;
+        }
+
+        return () => {
+            // Cleanup
+            images.forEach((img) => {
+                img.onload = null;
+                img.onerror = null;
+            });
         };
+    }, []);
 
-        // Rewind loop using requestAnimationFrame
-        const rewindVideo = () => {
-            if (!isRewindingRef.current) return;
+    // Draw frame to canvas
+    const drawFrame = useCallback((frameIndex: number) => {
+        const canvas = canvasRef.current;
+        const ctx = canvas?.getContext("2d");
+        const img = imagesRef.current[frameIndex];
 
-            // Rewind speed: 0.02s per frame (approx 1.2x speed at 60fps)
-            // Slowed down for better effect
-            video.currentTime = Math.max(0, video.currentTime - 0.02);
-            // Update progress relative to 4s
-            setVideoProgress(Math.min(video.currentTime / 4, 1));
-
-            if (video.currentTime > 0) {
-                rewindFrameRef.current = requestAnimationFrame(rewindVideo);
-            } else {
-                stopPlayback();
+        if (canvas && ctx && img) {
+            // Set canvas size to match container
+            const container = canvas.parentElement;
+            if (container) {
+                canvas.width = container.clientWidth;
+                canvas.height = container.clientHeight;
             }
-        };
+
+            // Draw image covering the entire canvas
+            const scale = Math.max(
+                canvas.width / img.width,
+                canvas.height / img.height
+            );
+            const x = (canvas.width - img.width * scale) / 2;
+            const y = (canvas.height - img.height * scale) / 2;
+
+            ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+        }
+    }, []);
+
+    // Smooth animation to target frame
+    const animateToFrame = useCallback(() => {
+        const current = currentFrameRef.current;
+        const target = targetFrameRef.current;
+
+        if (current === target) {
+            animationRef.current = null;
+            return;
+        }
+
+        const direction = target > current ? 1 : -1;
+        const newFrame = current + direction;
+
+        currentFrameRef.current = newFrame;
+        setCurrentFrame(newFrame);
+        drawFrame(newFrame);
+
+        // Update progress
+        const newProgress = newFrame / (TOTAL_FRAMES - 1);
+        setProgress(newProgress);
+        setIsSequenceComplete(newFrame >= TOTAL_FRAMES - 1);
+
+        animationRef.current = requestAnimationFrame(animateToFrame);
+    }, [drawFrame]);
+
+    // Handle scroll events
+    useEffect(() => {
+        if (!imagesLoaded) return;
 
         const handleWheel = (e: WheelEvent) => {
-            // 1. If user has scrolled past the hero section significantly, allow normal scrolling.
-            //    We use 100px threshold to catch them "coming back" early.
+            // If user has scrolled past the hero section, allow normal scrolling
             if (window.scrollY > 100) return;
 
             const isScrollingDown = e.deltaY > 0;
             const isScrollingUp = e.deltaY < 0;
+            const current = currentFrameRef.current;
 
-            // 2. Logic for scrolling DOWN
+            // Scrolling DOWN - advance frames
             if (isScrollingDown) {
-                // If video is NOT finished (played less than 4s), we hijack to play it.
-                if (video.currentTime < 4) {
+                if (current < TOTAL_FRAMES - 1) {
                     e.preventDefault();
+                    const newTarget = Math.min(
+                        targetFrameRef.current + FRAMES_PER_SCROLL,
+                        TOTAL_FRAMES - 1
+                    );
+                    targetFrameRef.current = newTarget;
 
-                    if (isRewindingRef.current) {
-                        if (rewindFrameRef.current) cancelAnimationFrame(rewindFrameRef.current);
-                        isRewindingRef.current = false;
+                    if (!animationRef.current) {
+                        animationRef.current = requestAnimationFrame(animateToFrame);
                     }
-
-                    startPlayback();
                 }
             }
-
-            // 3. Logic for scrolling UP
+            // Scrolling UP - rewind frames
             else if (isScrollingUp) {
-                // If video is NOT at start, we hijack to rewind it.
-                // Even if slightly played (0.1s), we catch it to ensure clean reset.
-                if (video.currentTime > 0.1) {
+                if (current > 0) {
                     e.preventDefault();
+                    const newTarget = Math.max(
+                        targetFrameRef.current - FRAMES_PER_SCROLL,
+                        0
+                    );
+                    targetFrameRef.current = newTarget;
 
-                    // Pause forward playback if active
-                    if (!video.paused) {
-                        video.pause();
-                        isPlaying = false;
-                    }
-
-                    // Start rewind if not already rewinding
-                    if (!isRewindingRef.current) {
-                        isRewindingRef.current = true;
-                        rewindVideo(); // Start the loop
+                    if (!animationRef.current) {
+                        animationRef.current = requestAnimationFrame(animateToFrame);
                     }
                 }
-            }
-
-            // 4. Reset "Stop" timer
-            clearTimeout(interactionTimeout);
-            interactionTimeout = setTimeout(() => {
-                stopPlayback();
-            }, 150);
-        };
-
-        const handleTimeUpdate = () => {
-            // Update progress relative to 4s (the interactive part)
-            setVideoProgress(Math.min(video.currentTime / 4, 1));
-
-            // If we reached the 4s mark while playing, ensure we stop so scroll unlocks naturally next time
-            if (video.currentTime >= 4) {
-                setIsVideoComplete(true);
-            } else {
-                setIsVideoComplete(false);
             }
         };
 
         window.addEventListener("wheel", handleWheel, { passive: false });
-        video.addEventListener("timeupdate", handleTimeUpdate);
 
         return () => {
             window.removeEventListener("wheel", handleWheel);
-            video.removeEventListener("timeupdate", handleTimeUpdate);
-            clearTimeout(interactionTimeout);
-            stopPlayback();
+            if (animationRef.current) {
+                cancelAnimationFrame(animationRef.current);
+            }
         };
-    }, [isVideoLoaded]);
+    }, [imagesLoaded, animateToFrame]);
+
+    // Handle window resize
+    useEffect(() => {
+        const handleResize = () => {
+            if (imagesLoaded) {
+                drawFrame(currentFrameRef.current);
+            }
+        };
+
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+    }, [imagesLoaded, drawFrame]);
 
     const stats = [
         { value: "10K+", label: "Happy Customers" },
@@ -177,34 +207,34 @@ export default function HeroSection() {
             ref={heroRef}
             className="relative min-h-screen flex items-center justify-center overflow-hidden"
         >
-            {/* Video Progress Indicator */}
-            {!isVideoComplete && isVideoLoaded && (
+            {/* Frame Sequence Progress Indicator */}
+            {!isSequenceComplete && imagesLoaded && (
                 <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-3">
                     <div className="text-xs text-white/70 font-medium">Scroll to explore</div>
                     <div className="w-48 h-1 bg-white/20 rounded-full overflow-hidden">
                         <div
                             className="h-full bg-gradient-to-r from-orange-400 to-red-500 transition-all duration-100"
-                            style={{ width: `${videoProgress * 100}%` }}
+                            style={{ width: `${progress * 100}%` }}
                         />
                     </div>
                 </div>
             )}
 
-            {/* Video Background */}
+            {/* Frame Sequence Background */}
             <div className="absolute inset-0">
-                {/* Video */}
-                <video
-                    ref={videoRef}
+                {/* Canvas for frame sequence */}
+                <canvas
+                    ref={canvasRef}
                     className="absolute inset-0 w-full h-full object-cover opacity-50"
-                    muted
-                    playsInline
-                    preload="auto"
-                    onLoadedMetadata={() => setIsVideoLoaded(true)}
-                >
-                    <source src="/Burger_Video_Generation_Complete.mp4" type="video/mp4" />
-                </video>
+                />
+                {/* Loading placeholder */}
+                {!imagesLoaded && (
+                    <div className="absolute inset-0 bg-black flex items-center justify-center">
+                        <div className="text-orange-400 animate-pulse">Loading...</div>
+                    </div>
+                )}
                 {/* Overlay gradients */}
-                <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-black/60 to-black/80" />
+                <div className="absolute inset-0 bg-gradient-to-br from-black/40 via-black/30 to-black/40" />
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[120%] h-[120%] bg-[radial-gradient(ellipse_at_center,_rgba(249,115,22,0.15)_0%,_transparent_50%)]" />
                 <div className="absolute bottom-0 right-0 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl animate-pulse" />
                 <div className="absolute top-1/4 left-0 w-72 h-72 bg-red-500/10 rounded-full blur-3xl animate-pulse delay-1000" />
@@ -229,46 +259,109 @@ export default function HeroSection() {
             <div className="relative z-10 max-w-7xl mx-auto px-6 py-32">
                 <div className="flex flex-col items-center justify-center">
                     {/* Hero Content */}
-                    <div className="text-center space-y-8 animate-fade-in-up max-w-4xl mx-auto">
-                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500/10 border border-orange-500/20 rounded-full text-orange-400 text-sm">
+                    <div className="text-center space-y-8 max-w-4xl mx-auto">
+                        {/* Badge - appears at 5% progress */}
+                        <div 
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500/10 border border-orange-500/20 rounded-full text-orange-400 text-sm transition-all duration-700 ease-out"
+                            style={{
+                                opacity: progress >= 0.05 ? 1 : 0,
+                                transform: progress >= 0.05 ? 'translateY(0) scale(1)' : 'translateY(30px) scale(0.9)',
+                            }}
+                        >
                             <Flame className="w-4 h-4 animate-pulse" />
                             <span>Flame-Grilled Perfection</span>
                         </div>
 
-                        <h1 className="text-5xl md:text-7xl font-black leading-tight">
-                            <span className="block text-white">The Best</span>
-                            <span className="block bg-gradient-to-r from-orange-400 via-red-500 to-orange-600 bg-clip-text text-transparent animate-gradient">
+                        <h1 className="text-5xl md:text-7xl font-black leading-tight overflow-hidden">
+                            {/* Title line 1 - appears at 15% progress */}
+                            <span 
+                                className="block text-white transition-all duration-700 ease-out"
+                                style={{
+                                    opacity: progress >= 0.15 ? 1 : 0,
+                                    transform: progress >= 0.15 ? 'translateY(0)' : 'translateY(50px)',
+                                    filter: progress >= 0.15 ? 'blur(0px)' : 'blur(10px)',
+                                }}
+                            >
+                                The Best
+                            </span>
+                            {/* Title line 2 - appears at 25% progress */}
+                            <span 
+                                className="block bg-gradient-to-r from-orange-400 via-red-500 to-orange-600 bg-clip-text text-transparent animate-gradient transition-all duration-700 ease-out"
+                                style={{
+                                    opacity: progress >= 0.25 ? 1 : 0,
+                                    transform: progress >= 0.25 ? 'translateY(0) scale(1)' : 'translateY(50px) scale(0.95)',
+                                    filter: progress >= 0.25 ? 'blur(0px)' : 'blur(10px)',
+                                }}
+                            >
                                 Burgers in Town
                             </span>
                         </h1>
 
-                        <p className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto">
+                        {/* Description - appears at 40% progress */}
+                        <p 
+                            className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto transition-all duration-700 ease-out"
+                            style={{
+                                opacity: progress >= 0.4 ? 1 : 0,
+                                transform: progress >= 0.4 ? 'translateY(0)' : 'translateY(40px)',
+                                filter: progress >= 0.4 ? 'blur(0px)' : 'blur(8px)',
+                            }}
+                        >
                             Located in the heart of{" "}
                             <strong className="text-white">Weligama</strong>, we craft
                             mouthwatering burgers using premium ingredients and secret recipes
                             passed down through generations.
                         </p>
 
-                        <div className="flex flex-col sm:flex-row items-center gap-4 justify-center">
-                            <Link href="/cart" className="group w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-orange-500 to-red-600 rounded-full font-bold text-lg hover:shadow-2xl hover:shadow-orange-500/30 hover:scale-105 transition-all duration-300 flex items-center justify-center gap-3 text-white">
+                        {/* Buttons - appear at 55% progress */}
+                        <div 
+                            className="flex flex-col sm:flex-row items-center gap-4 justify-center transition-all duration-700 ease-out"
+                            style={{
+                                opacity: progress >= 0.55 ? 1 : 0,
+                                transform: progress >= 0.55 ? 'translateY(0)' : 'translateY(40px)',
+                            }}
+                        >
+                            <Link 
+                                href="/cart" 
+                                className="group w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-orange-500 to-red-600 rounded-full font-bold text-lg hover:shadow-2xl hover:shadow-orange-500/30 hover:scale-105 transition-all duration-300 flex items-center justify-center gap-3 text-white"
+                                style={{
+                                    transform: progress >= 0.55 ? 'scale(1)' : 'scale(0.8)',
+                                    transition: 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                                }}
+                            >
                                 Order Now
                                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                             </Link>
                             <Link
                                 href="/menu"
                                 className="w-full sm:w-auto px-8 py-4 border-2 border-gray-700 rounded-full font-bold text-lg hover:border-orange-500 hover:text-orange-400 transition-all duration-300 text-center text-white"
+                                style={{
+                                    transform: progress >= 0.6 ? 'scale(1)' : 'scale(0.8)',
+                                    opacity: progress >= 0.6 ? 1 : 0,
+                                    transition: 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                                }}
                             >
                                 View Menu
                             </Link>
                         </div>
 
-                        {/* Stats */}
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 pt-8 border-t border-gray-800">
+                        {/* Stats - appear staggered starting at 70% progress */}
+                        <div 
+                            className="grid grid-cols-2 sm:grid-cols-4 gap-6 pt-8 border-t border-gray-800 transition-all duration-500"
+                            style={{
+                                opacity: progress >= 0.7 ? 1 : 0,
+                                borderColor: progress >= 0.7 ? 'rgb(31 41 55)' : 'transparent',
+                            }}
+                        >
                             {stats.map((stat, index) => (
                                 <div
                                     key={index}
-                                    className="text-center animate-fade-in-up"
-                                    style={{ animationDelay: `${index * 0.1}s` }}
+                                    className="text-center transition-all duration-700 ease-out"
+                                    style={{
+                                        opacity: progress >= 0.7 + (index * 0.05) ? 1 : 0,
+                                        transform: progress >= 0.7 + (index * 0.05) 
+                                            ? 'translateY(0) scale(1)' 
+                                            : 'translateY(30px) scale(0.8)',
+                                    }}
                                 >
                                     <div className="text-3xl md:text-4xl font-black bg-gradient-to-r from-orange-400 to-red-500 bg-clip-text text-transparent">
                                         {stat.value}
@@ -278,14 +371,6 @@ export default function HeroSection() {
                             ))}
                         </div>
                     </div>
-                </div>
-            </div>
-
-            {/* Scroll Indicator */}
-            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-bounce">
-                <span className="text-xs text-gray-500">Scroll Down</span>
-                <div className="w-6 h-10 border-2 border-gray-600 rounded-full flex items-start justify-center p-2">
-                    <div className="w-1 h-2 bg-orange-400 rounded-full animate-scroll-down" />
                 </div>
             </div>
         </section>

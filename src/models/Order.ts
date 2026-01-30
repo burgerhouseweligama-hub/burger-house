@@ -13,6 +13,10 @@ export interface IDeliveryDetails {
     address: string;
     city: string;
     postalCode: string;
+    location?: {
+        lat: number;
+        lng: number;
+    };
 }
 
 export interface IOrder extends Document {
@@ -75,6 +79,13 @@ const DeliveryDetailsSchema = new Schema<IDeliveryDetails>({
         type: String,
         required: [true, 'Postal code is required'],
         trim: true,
+    },
+    location: {
+        type: {
+            lat: { type: Number },
+            lng: { type: Number },
+        },
+        required: false,
     },
 });
 

@@ -107,6 +107,7 @@ export async function POST(req: NextRequest) {
                 address: address.trim(),
                 city: city.trim(),
                 postalCode: postalCode.trim(),
+                location: deliveryDetails.location || null,
             },
             items: orderItems,
             totalAmount,
@@ -124,6 +125,7 @@ export async function POST(req: NextRequest) {
             {
                 message: 'Order placed successfully!',
                 order: {
+                    _id: order._id,
                     orderNumber: order.orderNumber,
                     totalAmount: order.totalAmount,
                     status: order.status,

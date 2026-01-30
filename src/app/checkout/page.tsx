@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
@@ -28,6 +29,8 @@ import {
     Shield,
     Package,
     Loader2,
+    Store,
+    MessageCircle,
 } from 'lucide-react';
 
 interface DeliveryForm {
@@ -39,11 +42,21 @@ interface DeliveryForm {
 }
 
 interface OrderConfirmation {
+    _id: string;
     orderNumber: string;
     totalAmount: number;
     status: string;
     itemCount: number;
 }
+
+const LocationMap = dynamic(() => import('@/components/checkout/LocationMap'), {
+    ssr: false,
+    loading: () => (
+        <div className="h-[300px] w-full bg-zinc-800 animate-pulse rounded-xl flex items-center justify-center text-zinc-500">
+            Loading Map...
+        </div>
+    )
+});
 
 export default function CheckoutPage() {
     const router = useRouter();
@@ -54,6 +67,8 @@ export default function CheckoutPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [orderSuccess, setOrderSuccess] = useState(false);
     const [orderConfirmation, setOrderConfirmation] = useState<OrderConfirmation | null>(null);
+    const [paymentMethod, setPaymentMethod] = useState<'cod' | 'reserve'>('reserve');
+    const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
     const [formData, setFormData] = useState<DeliveryForm>({
         fullName: '',
         phone: '',
@@ -70,6 +85,28 @@ export default function CheckoutPage() {
         }
     }, [user]);
 
+    // Auto-send WhatsApp notification to admin when order is successful
+    useEffect(() => {
+        if (orderSuccess && orderConfirmation) {
+            const adminPhone = '94782902200';
+
+            const message = `🍔 *New Order Received - Burger House!*
+
+📋 *Order #${orderConfirmation.orderNumber}*
+💰 Total: LKR ${orderConfirmation.totalAmount.toLocaleString()}
+📦 Items: ${orderConfirmation.itemCount}
+💳 Payment: ${paymentMethod === 'cod' ? 'Cash on Delivery' : 'Order Reserve'}
+
+👤 Customer: ${formData.fullName}
+📱 Phone: ${formData.phone}`;
+
+            const whatsappUrl = `https://wa.me/${adminPhone}?text=${encodeURIComponent(message)}`;
+
+            // Open WhatsApp in a new tab
+            window.open(whatsappUrl, '_blank');
+        }
+    }, [orderSuccess, orderConfirmation]);
+
     const validateForm = (): boolean => {
         const newErrors: Partial<DeliveryForm> = {};
 
@@ -85,16 +122,19 @@ export default function CheckoutPage() {
             newErrors.phone = 'Enter a valid Sri Lankan phone number';
         }
 
-        if (!formData.address.trim()) {
-            newErrors.address = 'Address is required';
-        }
+        // Only validate address fields if Cash on Delivery is selected
+        if (paymentMethod === 'cod') {
+            if (!formData.address.trim()) {
+                newErrors.address = 'Address is required';
+            }
 
-        if (!formData.city.trim()) {
-            newErrors.city = 'City is required';
-        }
+            if (!formData.city.trim()) {
+                newErrors.city = 'City is required';
+            }
 
-        if (!formData.postalCode.trim()) {
-            newErrors.postalCode = 'Postal code is required';
+            if (!formData.postalCode.trim()) {
+                newErrors.postalCode = 'Postal code is required';
+            }
         }
 
         setErrors(newErrors);
@@ -127,11 +167,19 @@ export default function CheckoutPage() {
                 body: JSON.stringify({
                     email: user?.email,
                     phone: formData.phone,
-                    deliveryDetails: {
+                    orderType: paymentMethod, // 'cod' or 'reserve'
+                    deliveryDetails: paymentMethod === 'cod' ? {
                         fullName: formData.fullName,
                         address: formData.address,
                         city: formData.city,
                         postalCode: formData.postalCode,
+                        location: location // Include coordinates
+                    } : {
+                        // Send empty/dummy data for reserve to satisfy potential schematic requirements
+                        fullName: formData.fullName, // Still capture name
+                        address: 'Store Pickup/Reserve',
+                        city: '-',
+                        postalCode: '-',
                     },
                 }),
             });
@@ -308,8 +356,7 @@ export default function CheckoutPage() {
                                 <div className="flex justify-between items-center py-3 border-b border-zinc-800">
                                     <span className="text-zinc-400">Payment</span>
                                     <span className="text-white font-semibold flex items-center gap-2">
-                                        <Banknote className="w-4 h-4 text-orange-500" />
-                                        Cash on Delivery
+                                        {paymentMethod === 'cod' ? 'Cash on Delivery' : 'Order Reserve'}
                                     </span>
                                 </div>
                                 <div className="flex justify-between items-center pt-3">
@@ -431,120 +478,162 @@ export default function CheckoutPage() {
                                     </div>
                                 </div>
 
-                                {/* Delivery Details */}
-                                <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8">
-                                    <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
-                                        <MapPin className="w-6 h-6 text-orange-500" />
-                                        Delivery Details
-                                    </h2>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {/* Full Name */}
-                                        <div className="md:col-span-2">
-                                            <label className="block text-zinc-400 text-sm font-medium mb-2">
-                                                Full Name <span className="text-red-500">*</span>
-                                            </label>
-                                            <div className="relative">
-                                                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
-                                                <input
-                                                    type="text"
-                                                    name="fullName"
-                                                    placeholder="Enter your full name"
-                                                    value={formData.fullName}
-                                                    onChange={handleInputChange}
-                                                    className={`w-full pl-12 pr-4 py-4 bg-zinc-800 border ${errors.fullName ? 'border-red-500' : 'border-zinc-700'} rounded-xl text-white placeholder-zinc-500 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all`}
-                                                />
-                                            </div>
-                                            {errors.fullName && (
-                                                <p className="text-red-500 text-sm mt-2">{errors.fullName}</p>
-                                            )}
-                                        </div>
-
-                                        {/* Address */}
-                                        <div className="md:col-span-2">
-                                            <label className="block text-zinc-400 text-sm font-medium mb-2">
-                                                Delivery Address <span className="text-red-500">*</span>
-                                            </label>
-                                            <div className="relative">
-                                                <Home className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
-                                                <input
-                                                    type="text"
-                                                    name="address"
-                                                    placeholder="Street address, apartment, etc."
-                                                    value={formData.address}
-                                                    onChange={handleInputChange}
-                                                    className={`w-full pl-12 pr-4 py-4 bg-zinc-800 border ${errors.address ? 'border-red-500' : 'border-zinc-700'} rounded-xl text-white placeholder-zinc-500 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all`}
-                                                />
-                                            </div>
-                                            {errors.address && (
-                                                <p className="text-red-500 text-sm mt-2">{errors.address}</p>
-                                            )}
-                                        </div>
-
-                                        {/* City */}
-                                        <div>
-                                            <label className="block text-zinc-400 text-sm font-medium mb-2">
-                                                City <span className="text-red-500">*</span>
-                                            </label>
-                                            <div className="relative">
-                                                <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
-                                                <input
-                                                    type="text"
-                                                    name="city"
-                                                    placeholder="City"
-                                                    value={formData.city}
-                                                    onChange={handleInputChange}
-                                                    className={`w-full pl-12 pr-4 py-4 bg-zinc-800 border ${errors.city ? 'border-red-500' : 'border-zinc-700'} rounded-xl text-white placeholder-zinc-500 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all`}
-                                                />
-                                            </div>
-                                            {errors.city && (
-                                                <p className="text-red-500 text-sm mt-2">{errors.city}</p>
-                                            )}
-                                        </div>
-
-                                        {/* Postal Code */}
-                                        <div>
-                                            <label className="block text-zinc-400 text-sm font-medium mb-2">
-                                                Postal Code <span className="text-red-500">*</span>
-                                            </label>
-                                            <div className="relative">
-                                                <Hash className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
-                                                <input
-                                                    type="text"
-                                                    name="postalCode"
-                                                    placeholder="81700"
-                                                    value={formData.postalCode}
-                                                    onChange={handleInputChange}
-                                                    className={`w-full pl-12 pr-4 py-4 bg-zinc-800 border ${errors.postalCode ? 'border-red-500' : 'border-zinc-700'} rounded-xl text-white placeholder-zinc-500 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all`}
-                                                />
-                                            </div>
-                                            {errors.postalCode && (
-                                                <p className="text-red-500 text-sm mt-2">{errors.postalCode}</p>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Payment Method */}
+                                {/* Payment Method Selection */}
                                 <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8">
                                     <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
                                         <Banknote className="w-6 h-6 text-orange-500" />
                                         Payment Method
                                     </h2>
 
-                                    <div className="relative">
-                                        <div className="flex items-center gap-4 p-5 bg-gradient-to-r from-orange-500/10 to-red-500/10 border-2 border-orange-500 rounded-2xl">
-                                            <div className="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center">
+                                    <div className="space-y-4">
+                                        {/* Option 1: Order Reserve */}
+                                        <div
+                                            onClick={() => setPaymentMethod('reserve')}
+                                            className={`relative cursor-pointer transition-all ${paymentMethod === 'reserve'
+                                                ? 'bg-gradient-to-r from-orange-500/10 to-red-500/10 border-orange-500'
+                                                : 'bg-zinc-800/50 border-zinc-700 hover:border-zinc-600'
+                                                } border-2 rounded-2xl p-5 flex items-center gap-4`}
+                                        >
+                                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${paymentMethod === 'reserve' ? 'bg-orange-500' : 'bg-zinc-700'
+                                                }`}>
+                                                <div className="text-white">
+                                                    <Store className="w-6 h-6" />
+                                                </div>
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="text-white font-bold text-lg">Order Reserve</p>
+                                                <p className="text-zinc-400 text-sm">Pick up directly from the store</p>
+                                            </div>
+                                            {paymentMethod === 'reserve' && (
+                                                <CheckCircle2 className="w-6 h-6 text-orange-500" />
+                                            )}
+                                        </div>
+
+                                        {/* Option 2: Cash on Delivery */}
+                                        <div
+                                            onClick={() => setPaymentMethod('cod')}
+                                            className={`relative cursor-pointer transition-all ${paymentMethod === 'cod'
+                                                ? 'bg-gradient-to-r from-orange-500/10 to-red-500/10 border-orange-500'
+                                                : 'bg-zinc-800/50 border-zinc-700 hover:border-zinc-600'
+                                                } border-2 rounded-2xl p-5 flex items-center gap-4`}
+                                        >
+                                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${paymentMethod === 'cod' ? 'bg-orange-500' : 'bg-zinc-700'
+                                                }`}>
                                                 <Banknote className="w-6 h-6 text-white" />
                                             </div>
                                             <div className="flex-1">
                                                 <p className="text-white font-bold text-lg">Cash on Delivery</p>
                                                 <p className="text-zinc-400 text-sm">Pay when you receive your order</p>
                                             </div>
-                                            <CheckCircle2 className="w-6 h-6 text-orange-500" />
+                                            {paymentMethod === 'cod' && (
+                                                <CheckCircle2 className="w-6 h-6 text-orange-500" />
+                                            )}
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* Delivery Details (Conditional) */}
+                                {paymentMethod === 'cod' && (
+                                    <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8 animate-in fade-in slide-in-from-top-4 duration-300">
+                                        <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+                                            <MapPin className="w-6 h-6 text-orange-500" />
+                                            Delivery Details
+                                        </h2>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            {/* Full Name field removed from here as it's now in Contact Info */}
+                                            {/* Address */}
+                                            <div className="md:col-span-2">
+                                                <label className="block text-zinc-400 text-sm font-medium mb-2">
+                                                    Delivery Address <span className="text-red-500">*</span>
+                                                </label>
+                                                <div className="relative">
+                                                    <Home className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
+                                                    <input
+                                                        type="text"
+                                                        name="address"
+                                                        placeholder="Street address, apartment, etc."
+                                                        value={formData.address}
+                                                        onChange={handleInputChange}
+                                                        className={`w-full pl-12 pr-4 py-4 bg-zinc-800 border ${errors.address ? 'border-red-500' : 'border-zinc-700'} rounded-xl text-white placeholder-zinc-500 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all`}
+                                                    />
+                                                </div>
+                                                {errors.address && (
+                                                    <p className="text-red-500 text-sm mt-2">{errors.address}</p>
+                                                )}
+                                            </div>
+
+                                            {/* City */}
+                                            <div>
+                                                <label className="block text-zinc-400 text-sm font-medium mb-2">
+                                                    City <span className="text-red-500">*</span>
+                                                </label>
+                                                <div className="relative">
+                                                    <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500 pointer-events-none" />
+                                                    <select
+                                                        name="city"
+                                                        value={formData.city}
+                                                        onChange={(e) => {
+                                                            const { name, value } = e.target;
+                                                            setFormData(prev => ({ ...prev, [name]: value }));
+                                                            if (errors.city) setErrors(prev => ({ ...prev, city: undefined }));
+                                                        }}
+                                                        className={`w-full pl-12 pr-4 py-4 bg-zinc-800 border ${errors.city ? 'border-red-500' : 'border-zinc-700'} rounded-xl text-white appearance-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all cursor-pointer`}
+                                                    >
+                                                        <option value="" disabled>Select your city</option>
+                                                        <option value="Weligama">Weligama</option>
+                                                        <option value="Mirissa">Mirissa</option>
+                                                        <option value="Midigama">Midigama</option>
+                                                        <option value="Ahangama">Ahangama</option>
+                                                        <option value="Kamburugamuwa">Kamburugamuwa</option>
+                                                        <option value="Denipitiya">Denipitiya</option>
+                                                    </select>
+                                                    {/* Custom Arrow Icon */}
+                                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                                                        <svg className="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                        </svg>
+                                                    </div>
+                                                </div>
+                                                {errors.city && (
+                                                    <p className="text-red-500 text-sm mt-2">{errors.city}</p>
+                                                )}
+                                            </div>
+
+                                            {/* Postal Code */}
+                                            <div>
+                                                <label className="block text-zinc-400 text-sm font-medium mb-2">
+                                                    Postal Code <span className="text-red-500">*</span>
+                                                </label>
+                                                <div className="relative">
+                                                    <Hash className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
+                                                    <input
+                                                        type="text"
+                                                        name="postalCode"
+                                                        placeholder="81700"
+                                                        value={formData.postalCode}
+                                                        onChange={handleInputChange}
+                                                        className={`w-full pl-12 pr-4 py-4 bg-zinc-800 border ${errors.postalCode ? 'border-red-500' : 'border-zinc-700'} rounded-xl text-white placeholder-zinc-500 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all`}
+                                                    />
+                                                </div>
+                                                {errors.postalCode && (
+                                                    <p className="text-red-500 text-sm mt-2">{errors.postalCode}</p>
+                                                )}
+                                            </div>
+
+                                            {/* Location Map */}
+                                            <div className="md:col-span-2 pt-4">
+                                                <LocationMap onLocationSelect={(lat, lng) => setLocation({ lat, lng })} />
+                                                {!location && isSubmitting && (
+                                                    <p className="text-red-500 text-xs mt-2">Please pin your delivery location on the map</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+
 
                                 {/* Submit Button (Mobile) */}
                                 <button
@@ -665,9 +754,9 @@ export default function CheckoutPage() {
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
+                </div >
+            </div >
             <Footer />
-        </main>
+        </main >
     );
 }
