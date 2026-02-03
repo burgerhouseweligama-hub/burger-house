@@ -15,7 +15,7 @@ const VisitorSchema = new Schema<IVisitor>(
     { timestamps: true }
 );
 
-VisitorSchema.index({ date: 1 }, { unique: true });
+
 
 const Visitor: Model<IVisitor> = mongoose.models.Visitor || mongoose.model<IVisitor>('Visitor', VisitorSchema);
 

@@ -3,7 +3,7 @@ import connectDB from '@/lib/db';
 import Product from '@/models/Product';
 import Category from '@/models/Category';
 
-// GET all products (with optional category filter)
+// GET products with optional pagination and filters
 export async function GET(request: NextRequest) {
     try {
         await connectDB();
@@ -11,6 +11,9 @@ export async function GET(request: NextRequest) {
         const { searchParams } = new URL(request.url);
         const categoryId = searchParams.get('category');
         const availableOnly = searchParams.get('available') === 'true';
+        const search = searchParams.get('search')?.trim() || '';
+        const pageParam = searchParams.get('page');
+        const limitParam = searchParams.get('limit');
 
         // Build query
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -24,6 +27,41 @@ export async function GET(request: NextRequest) {
             query.isAvailable = true;
         }
 
+        // Search by product name
+        if (search) {
+            query.name = { $regex: search, $options: 'i' };
+        }
+
+        // Check if pagination is requested
+        const isPaginated = pageParam || limitParam;
+
+        if (isPaginated) {
+            // Paginated response
+            const page = pageParam ? Math.max(parseInt(pageParam, 10), 1) : 1;
+            const limit = limitParam ? Math.min(Math.max(parseInt(limitParam, 10), 1), 100) : 10;
+            const skip = (page - 1) * limit;
+
+            const [products, total] = await Promise.all([
+                Product.find(query)
+                    .populate('category', 'name slug')
+                    .sort({ createdAt: -1 })
+                    .skip(skip)
+                    .limit(limit),
+                Product.countDocuments(query),
+            ]);
+
+            const totalPages = Math.ceil(total / limit);
+
+            return NextResponse.json({
+                products,
+                total,
+                page,
+                limit,
+                totalPages,
+            }, { status: 200 });
+        }
+
+        // Non-paginated response (backward compatible for public menu)
         const products = await Product.find(query)
             .populate('category', 'name slug')
             .sort({ createdAt: -1 });

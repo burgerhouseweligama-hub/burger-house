@@ -11,33 +11,33 @@ export async function GET() {
         return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
+    // Variables captured by closure for cleanup
+    let heartbeatInterval: NodeJS.Timeout | null = null;
+    let sseClient: ReturnType<typeof addSSEClient> | null = null;
+    let active = true;
+
     const stream = new ReadableStream<Uint8Array>({
         start(controller) {
-            const client = addSSEClient(controller);
-            let active = true;
+            sseClient = addSSEClient(controller);
 
             // Initial heartbeat
             controller.enqueue(new TextEncoder().encode(': connected\n\n'));
 
-            const heartbeat = setInterval(() => {
+            heartbeatInterval = setInterval(() => {
                 if (!active) return;
                 try {
                     controller.enqueue(new TextEncoder().encode(`: heartbeat ${Date.now()}\n\n`));
-                } catch (error) {
+                } catch {
                     active = false;
-                    clearInterval(heartbeat);
-                    removeSSEClient(client);
+                    if (heartbeatInterval) clearInterval(heartbeatInterval);
+                    if (sseClient) removeSSEClient(sseClient);
                 }
             }, 30000);
-
-            controller.oncancel = () => {
-                clearInterval(heartbeat);
-                removeSSEClient(client);
-                active = false;
-            };
         },
         cancel() {
-            // No-op: handled in oncancel
+            active = false;
+            if (heartbeatInterval) clearInterval(heartbeatInterval);
+            if (sseClient) removeSSEClient(sseClient);
         },
     });
 

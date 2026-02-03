@@ -1,4 +1,6 @@
 import mongoose from 'mongoose';
+import { seedAdmin } from './seedAdmin';
+import { seedMockData } from './seedMockData';
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
@@ -8,7 +10,7 @@ interface MongooseCache {
 }
 
 declare global {
-   
+
   var mongoose: MongooseCache | undefined;
 }
 
@@ -24,8 +26,15 @@ async function connectDB(): Promise<typeof mongoose> {
   }
 
   if (cached.conn) {
+    // Attempt seeding in background on subsequent connections/hot reloads if needed, 
+    // but typically we mainly care about the initial connection.
+    // However, in dev mode with HMR, cached.conn persists.
+    // We can rely on the internal checks of seed functions to avoid duplicate work.
+    seedAdmin();
+    seedMockData();
     return cached.conn;
   }
+
 
   if (!cached.promise) {
     const opts = {
@@ -39,6 +48,10 @@ async function connectDB(): Promise<typeof mongoose> {
 
   try {
     cached.conn = await cached.promise;
+
+    // Seed data on connection
+    seedAdmin();
+    seedMockData();
   } catch (e) {
     cached.promise = null;
     throw e;

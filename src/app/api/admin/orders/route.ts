@@ -16,7 +16,7 @@ async function verifyAdmin() {
     return auth.userId;
 }
 
-// GET - Fetch all orders (admin only)
+// GET - Fetch orders with pagination (admin only)
 export async function GET(req: NextRequest) {
     try {
         const adminId = await verifyAdmin();
@@ -30,28 +30,65 @@ export async function GET(req: NextRequest) {
 
         await connectToDatabase();
 
-        // Get query parameters for filtering
+        // Get query parameters
         const { searchParams } = new URL(req.url);
         const statusFilter = searchParams.get('status');
+        const search = searchParams.get('search')?.trim() || '';
+        const pageParam = searchParams.get('page');
+        const limitParam = searchParams.get('limit');
+        const sortBy = searchParams.get('sortBy') || 'createdAt';
+        const sortOrder = searchParams.get('sortOrder') === 'asc' ? 1 : -1;
+
+        // Pagination settings
+        const page = pageParam ? Math.max(parseInt(pageParam, 10), 1) : 1;
+        const limit = limitParam ? Math.min(Math.max(parseInt(limitParam, 10), 1), 100) : 10;
+        const skip = (page - 1) * limit;
 
         // Build query
         const query: any = {};
+
+        // Status filter
         if (statusFilter && statusFilter !== 'all') {
             query.status = statusFilter;
+        }
+
+        // Search filter (order number, email)
+        if (search) {
+            query.$or = [
+                { orderNumber: { $regex: search, $options: 'i' } },
+                { email: { $regex: search, $options: 'i' } },
+            ];
         }
 
         // Ensure models are registered for populate
         void User;
         void Product;
 
-        // Fetch orders with populated user data
-        const orders = await Order.find(query)
-            .populate('user', 'displayName email')
-            .populate('items.product', 'name image')
-            .sort({ createdAt: -1 })
-            .lean();
+        // Build sort object
+        const sortObj: Record<string, 1 | -1> = {};
+        sortObj[sortBy] = sortOrder;
 
-        return NextResponse.json(orders, { status: 200 });
+        // Execute queries in parallel
+        const [orders, total] = await Promise.all([
+            Order.find(query)
+                .populate('user', 'displayName email')
+                .populate('items.product', 'name image')
+                .sort(sortObj)
+                .skip(skip)
+                .limit(limit)
+                .lean(),
+            Order.countDocuments(query),
+        ]);
+
+        const totalPages = Math.ceil(total / limit);
+
+        return NextResponse.json({
+            orders,
+            total,
+            page,
+            limit,
+            totalPages,
+        }, { status: 200 });
     } catch (error) {
         console.error('Error fetching orders:', error);
         return NextResponse.json(

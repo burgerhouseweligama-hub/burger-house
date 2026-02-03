@@ -29,36 +29,47 @@ export async function GET(req: NextRequest) {
         const { searchParams } = new URL(req.url);
         const limitParam = searchParams.get('limit');
         const pageParam = searchParams.get('page');
+        const search = searchParams.get('search')?.trim() || '';
 
-        const limit = limitParam ? Math.min(Math.max(parseInt(limitParam, 10), 1), 100) : null;
+        const limit = limitParam ? Math.min(Math.max(parseInt(limitParam, 10), 1), 100) : 10;
         const page = pageParam ? Math.max(parseInt(pageParam, 10), 1) : 1;
-        const skip = limit ? (page - 1) * limit : 0;
+        const skip = (page - 1) * limit;
 
-        const baseQuery = { role: { $ne: 'admin' } };
+        // Build base query
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const baseQuery: any = { role: { $ne: 'admin' } };
+
+        // Add search filter
+        if (search) {
+            baseQuery.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { email: { $regex: search, $options: 'i' } },
+            ];
+        }
 
         // Compute start of day for daily metrics
         const startOfDay = new Date();
         startOfDay.setHours(0, 0, 0, 0);
 
-        const userQuery = User.find(baseQuery)
-            .sort({ createdAt: -1 })
-            .select('name email role authProvider createdAt');
-
-        if (limit) {
-            userQuery.skip(skip).limit(limit);
-        }
-
         const [users, total, todayNew] = await Promise.all([
-            userQuery.lean(),
+            User.find(baseQuery)
+                .sort({ createdAt: -1 })
+                .select('name email role authProvider createdAt')
+                .skip(skip)
+                .limit(limit)
+                .lean(),
             User.countDocuments(baseQuery),
             User.countDocuments({ ...baseQuery, createdAt: { $gte: startOfDay } }),
         ]);
 
+        const totalPages = Math.ceil(total / limit);
+
         return NextResponse.json({
             users,
             total,
-            page: limit ? page : 1,
-            limit: limit || users.length,
+            page,
+            limit,
+            totalPages,
             todayNew,
         });
     } catch (error) {
