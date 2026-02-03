@@ -30,55 +30,56 @@ export default function AdminDashboard() {
     const [recentUsers, setRecentUsers] = useState<UserSummary[]>([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        async function fetchStats() {
-            try {
-                const [categoriesRes, productsRes, ordersRes, usersRes] = await Promise.all([
-                    fetch('/api/categories'),
-                    fetch('/api/products'),
-                    fetch('/api/admin/orders'),
-                    fetch('/api/admin/users?limit=6'),
-                ]);
+    const fetchStats = React.useCallback(async () => {
+        try {
+            const [categoriesRes, productsRes, ordersRes, usersRes] = await Promise.all([
+                fetch('/api/categories'),
+                fetch('/api/products'),
+                fetch('/api/admin/orders'),
+                fetch('/api/admin/users?limit=6'),
+            ]);
 
-                if (!categoriesRes.ok || !productsRes.ok || !ordersRes.ok || !usersRes.ok) {
-                    throw new Error('Failed to fetch admin stats');
-                }
-
-                const [categories, products, orders, usersData] = await Promise.all([
-                    categoriesRes.json(),
-                    productsRes.json(),
-                    ordersRes.json(),
-                    usersRes.json(),
-                ]);
-
-                const ordersArray = Array.isArray(orders) ? orders : [];
-                const todayStart = new Date();
-                todayStart.setHours(0, 0, 0, 0);
-
-                const totalRevenue = ordersArray.reduce((sum: number, order: any) => sum + (order.totalAmount || 0), 0);
-                const activeOrders = ordersArray.filter((order: any) => order.status !== 'delivered' && order.status !== 'cancelled').length;
-                const todayOrders = ordersArray.filter((order: any) => order.createdAt && new Date(order.createdAt) >= todayStart).length;
-
-                setStats({
-                    categories: Array.isArray(categories) ? categories.length : 0,
-                    products: Array.isArray(products) ? products.length : 0,
-                    orders: ordersArray.length,
-                    customers: typeof usersData?.total === 'number' ? usersData.total : 0,
-                    revenue: totalRevenue,
-                    activeOrders,
-                    todayOrders,
-                    todayCustomers: typeof usersData?.todayNew === 'number' ? usersData.todayNew : 0,
-                });
-                setRecentUsers(Array.isArray(usersData?.users) ? usersData.users : []);
-            } catch (error) {
-                console.error('Error fetching stats:', error);
-            } finally {
-                setLoading(false);
+            if (!categoriesRes.ok || !productsRes.ok || !ordersRes.ok || !usersRes.ok) {
+                throw new Error('Failed to fetch admin stats');
             }
-        }
 
-        fetchStats();
+            const [categories, products, orders, usersData] = await Promise.all([
+                categoriesRes.json(),
+                productsRes.json(),
+                ordersRes.json(),
+                usersRes.json(),
+            ]);
+
+            const ordersArray = Array.isArray(orders) ? orders : [];
+            const todayStart = new Date();
+            todayStart.setHours(0, 0, 0, 0);
+
+            const totalRevenue = ordersArray.reduce((sum: number, order: any) => sum + (order.totalAmount || 0), 0);
+            const activeOrders = ordersArray.filter((order: any) => order.status !== 'delivered' && order.status !== 'cancelled').length;
+            const todayOrders = ordersArray.filter((order: any) => order.createdAt && new Date(order.createdAt) >= todayStart).length;
+
+            setStats({
+                categories: Array.isArray(categories) ? categories.length : 0,
+                products: Array.isArray(products) ? products.length : 0,
+                orders: ordersArray.length,
+                customers: typeof usersData?.total === 'number' ? usersData.total : 0,
+                revenue: totalRevenue,
+                activeOrders,
+                todayOrders,
+                todayCustomers: typeof usersData?.todayNew === 'number' ? usersData.todayNew : 0,
+            });
+            setRecentUsers(Array.isArray(usersData?.users) ? usersData.users : []);
+        } catch (error) {
+            console.error('Error fetching stats:', error);
+        } finally {
+            setLoading(false);
+        }
     }, []);
+
+    useEffect(() => {
+        setLoading(true);
+        fetchStats();
+    }, [fetchStats]);
 
     function formatDate(dateString: string) {
         const date = new Date(dateString);
@@ -94,6 +95,24 @@ export default function AdminDashboard() {
     }
 
     const safeNumber = (value: number | undefined | null) => Number.isFinite(value) ? Number(value) : 0;
+
+    // Listen for real-time order events to refresh stats instantly
+    useEffect(() => {
+        const eventSource = new EventSource('/api/admin/orders/stream');
+
+        const handleOrderCreated = () => {
+            // refresh stats silently (loading spinner minimal)
+            fetchStats();
+        };
+
+        eventSource.addEventListener('order_created', handleOrderCreated);
+        eventSource.onerror = () => eventSource.close();
+
+        return () => {
+            eventSource.removeEventListener('order_created', handleOrderCreated);
+            eventSource.close();
+        };
+    }, [fetchStats]);
 
     const dashboardCards = [
         {
