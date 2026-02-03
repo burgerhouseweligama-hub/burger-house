@@ -89,7 +89,7 @@ export default function CheckoutPage() {
     // Auto-send WhatsApp notification to admin when order is successful
     useEffect(() => {
         if (orderSuccess && orderConfirmation) {
-            const adminPhone = '94782902200';
+            const adminPhone = '94740022625';
 
             const itemsText = orderConfirmation.items && orderConfirmation.items.length > 0
                 ? orderConfirmation.items.map(item => `${item.name} x ${item.quantity}`).join(', ')
