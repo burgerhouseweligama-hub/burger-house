@@ -158,7 +158,7 @@ OrderSchema.pre('save', async function () {
 // Indexes for common queries
 OrderSchema.index({ user: 1 });
 OrderSchema.index({ status: 1 });
-OrderSchema.index({ orderNumber: 1 });
+// orderNumber is already indexed by unique: true
 OrderSchema.index({ createdAt: -1 });
 
 const Order: Model<IOrder> =

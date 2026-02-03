@@ -1,8 +1,3 @@
-import { Resend } from 'resend';
-
-// Initialize Resend with API key
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 interface OrderItem {
     name: string;
     quantity: number;
@@ -221,29 +216,38 @@ const generateEmailHTML = (order: Order, status: OrderStatus): string => {
 // Send order status email
 export async function sendOrderStatusEmail(order: Order, status: OrderStatus): Promise<boolean> {
     try {
-        // Check if API key is configured
-        if (!process.env.RESEND_API_KEY) {
-            console.warn('Resend API Key credentials not configured. Skipping email notification.');
+        // Check if Web3Forms API key is configured
+        if (!process.env.WEB3FORMS_ACCESS_KEY) {
+            console.warn('Web3Forms Access Key not configured. Skipping email notification.');
             return false;
         }
 
         const statusInfo = statusMessages[status];
         const html = generateEmailHTML(order, status);
 
-        const { data, error } = await resend.emails.send({
-            from: 'Burger House <onboarding@resend.dev>', // Use onboarding domain for free tier testing
-            to: [order.email], // Resend expects an array for 'to'
-            subject: statusInfo.subject,
-            html: html,
+        const response = await fetch('https://api.web3forms.com/submit', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+            },
+            body: JSON.stringify({
+                access_key: process.env.WEB3FORMS_ACCESS_KEY,
+                email: order.email,
+                subject: statusInfo.subject,
+                message: html,
+            }),
         });
 
-        if (error) {
-            console.error('Error sending email via Resend:', error);
+        const result = await response.json();
+
+        if (result.success) {
+            console.log(`Order status email sent to ${order.email} for order ${order.orderNumber}.`);
+            return true;
+        } else {
+            console.error('Error sending email via Web3Forms:', result);
             return false;
         }
-
-        console.log(`Order status email sent to ${order.email} for order ${order.orderNumber}. ID: ${data?.id}`);
-        return true;
     } catch (error) {
         console.error('Failed to send order status email:', error);
         return false;
