@@ -17,7 +17,9 @@ import {
     Bell,
     Search,
     User,
-    Users
+    Users,
+    Trash2,
+    Check
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -47,6 +49,16 @@ export default function AdminLayout({
     const [isLoading, setIsLoading] = useState(true);
     const [loggingOut, setLoggingOut] = useState(false);
     const { showToast } = useToast();
+    const [notifications, setNotifications] = useState<Array<{
+        id: string;
+        orderId: string;
+        orderNumber: string;
+        totalAmount: number;
+        itemsText: string;
+        createdAt: string;
+        read: boolean;
+    }>>([]);
+    const [notificationsOpen, setNotificationsOpen] = useState(false);
 
     // Check if current path is a public path
     const isPublicPath = publicPaths.some(path => pathname.startsWith(path));
@@ -98,6 +110,20 @@ export default function AdminLayout({
                     `New order ${data.orderNumber || ''} - LKR ${amount}${itemsText ? ` • ${itemsText}` : ''}${customer}`,
                     'info'
                 );
+
+                const notificationId = `${data.orderId || data.orderNumber || Date.now()}`;
+                setNotifications(prev => [
+                    {
+                        id: notificationId,
+                        orderId: data.orderId,
+                        orderNumber: data.orderNumber,
+                        totalAmount: data.totalAmount || 0,
+                        itemsText: itemsText || 'New items',
+                        createdAt: data.createdAt || new Date().toISOString(),
+                        read: false,
+                    },
+                    ...prev,
+                ]);
             } catch (error) {
                 console.error('Failed to parse order event', error);
             }
@@ -114,6 +140,18 @@ export default function AdminLayout({
             eventSource.close();
         };
     }, [isAuthenticated, isPublicPath, showToast]);
+
+    const unreadCount = notifications.filter(n => !n.read).length;
+
+    const markAsReadAndGo = (notificationId: string, orderId: string) => {
+        setNotifications(prev => prev.map(n => n.id === notificationId ? { ...n, read: true } : n));
+        router.push(`/admin/orders/${orderId}`);
+        setNotificationsOpen(false);
+    };
+
+    const dismissNotification = (notificationId: string) => {
+        setNotifications(prev => prev.filter(n => n.id !== notificationId));
+    };
 
     async function handleLogout() {
         setLoggingOut(true);
@@ -283,10 +321,77 @@ export default function AdminLayout({
                         </div>
 
                         <div className="flex items-center gap-4">
-                            <button className="relative p-2 text-zinc-400 hover:text-white transition-colors rounded-full hover:bg-white/5">
-                                <Bell className="h-5 w-5" />
-                                <span className="absolute top-2 right-2 w-2 h-2 bg-orange-500 rounded-full border-2 border-black" />
-                            </button>
+                            <div className="relative">
+                                <button
+                                    onClick={() => setNotificationsOpen(open => !open)}
+                                    className="relative p-2 text-zinc-400 hover:text-white transition-colors rounded-full hover:bg-white/5"
+                                >
+                                    <Bell className="h-5 w-5" />
+                                    {unreadCount > 0 && (
+                                        <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-orange-500 text-[10px] font-bold text-white rounded-full flex items-center justify-center">
+                                            {unreadCount}
+                                        </span>
+                                    )}
+                                </button>
+
+                                {notificationsOpen && (
+                                    <div className="absolute right-0 mt-3 w-80 bg-zinc-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
+                                        <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
+                                            <div>
+                                                <p className="text-white font-semibold">Notifications</p>
+                                                <p className="text-xs text-zinc-500">New orders in real time</p>
+                                            </div>
+                                            {notifications.length > 0 && (
+                                                <span className="text-xs text-zinc-500">{unreadCount} unread</span>
+                                            )}
+                                        </div>
+
+                                        {notifications.length === 0 ? (
+                                            <div className="px-4 py-6 text-sm text-zinc-500 text-center">No notifications yet</div>
+                                        ) : (
+                                            <div className="max-h-96 overflow-auto">
+                                                {notifications.map((n) => (
+                                                    <div
+                                                        key={n.id}
+                                                        className={`px-4 py-3 border-b border-white/5 flex items-start gap-3 ${n.read ? 'bg-zinc-900' : 'bg-zinc-800/60'}`}
+                                                    >
+                                                        <div className={`mt-1 h-2 w-2 rounded-full ${n.read ? 'bg-zinc-600' : 'bg-orange-500'}`} />
+                                                        <div className="flex-1 space-y-1">
+                                                            <button
+                                                                onClick={() => markAsReadAndGo(n.id, n.orderId)}
+                                                                className="text-left w-full"
+                                                            >
+                                                                <p className="text-sm text-white font-semibold">Order {n.orderNumber}</p>
+                                                                <p className="text-xs text-zinc-300">LKR {n.totalAmount.toLocaleString()}</p>
+                                                                <p className="text-xs text-zinc-400">{n.itemsText}</p>
+                                                            </button>
+                                                            <p className="text-[11px] text-zinc-500">{new Date(n.createdAt).toLocaleString()}</p>
+                                                        </div>
+                                                        <div className="flex flex-col items-center gap-2">
+                                                            {!n.read && (
+                                                                <button
+                                                                    onClick={() => setNotifications(prev => prev.map(item => item.id === n.id ? { ...item, read: true } : item))}
+                                                                    className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
+                                                                    title="Mark as read"
+                                                                >
+                                                                    <Check className="h-3 w-3" />
+                                                                </button>
+                                                            )}
+                                                            <button
+                                                                onClick={() => dismissNotification(n.id)}
+                                                                className="text-xs text-zinc-500 hover:text-red-400"
+                                                                title="Dismiss"
+                                                            >
+                                                                <Trash2 className="h-3 w-3" />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
 
                             <div className="h-8 w-px bg-white/10 mx-2" />
 

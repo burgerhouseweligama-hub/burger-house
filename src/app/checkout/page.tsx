@@ -47,6 +47,7 @@ interface OrderConfirmation {
     totalAmount: number;
     status: string;
     itemCount: number;
+    items?: { name: string; quantity: number; price?: number }[];
 }
 
 const LocationMap = dynamic(() => import('@/components/checkout/LocationMap'), {
@@ -90,11 +91,15 @@ export default function CheckoutPage() {
         if (orderSuccess && orderConfirmation) {
             const adminPhone = '94782902200';
 
+            const itemsText = orderConfirmation.items && orderConfirmation.items.length > 0
+                ? orderConfirmation.items.map(item => `${item.name} x ${item.quantity}`).join(', ')
+                : `${orderConfirmation.itemCount} items`;
+
             const message = `🍔 *New Order Received - Burger House!*
 
 📋 *Order #${orderConfirmation.orderNumber}*
 💰 Total: LKR ${orderConfirmation.totalAmount.toLocaleString()}
-📦 Items: ${orderConfirmation.itemCount}
+📦 Items: ${itemsText}
 💳 Payment: ${paymentMethod === 'cod' ? 'Cash on Delivery' : 'Order Reserve'}
 
 👤 Customer: ${formData.fullName}

@@ -76,6 +76,9 @@ export const metadata: Metadata = {
 import { AuthProvider } from "@/context/AuthContext";
 import { CartProvider } from "@/context/CartContext";
 import { ToastProvider } from "@/context/ToastContext";
+import dynamic from 'next/dynamic'
+
+const AnalyticsTracker = dynamic(() => import('@/components/AnalyticsTracker'), { ssr: false })
 
 export default function RootLayout({
   children,
@@ -87,7 +90,8 @@ export default function RootLayout({
       <head>
         <JsonLd />
       </head>
-      <body className={`${oswald.variable} ${openSans.variable} font-body antialiased`} suppressHydrationWarning>
+         <body className={`${oswald.variable} ${openSans.variable} font-body antialiased`} suppressHydrationWarning>
+           <AnalyticsTracker />
         <AuthProvider>
           <CartProvider>
             <ToastProvider>

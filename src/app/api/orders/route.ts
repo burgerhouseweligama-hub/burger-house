@@ -145,6 +145,11 @@ export async function POST(req: NextRequest) {
                     paymentMethod: order.paymentMethod,
                     deliveryDetails: order.deliveryDetails,
                     itemCount: order.items.length,
+                    items: orderItems.map((item: any) => ({
+                        name: item.name,
+                        quantity: item.quantity,
+                        price: item.price,
+                    })),
                     createdAt: order.createdAt,
                 },
             },

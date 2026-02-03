@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Grid3X3, UtensilsCrossed, ArrowRight, Loader2, ShoppingBag, TrendingUp, Users, DollarSign, Mail, Calendar } from 'lucide-react';
+import { Grid3X3, UtensilsCrossed, ArrowRight, Loader2, ShoppingBag, TrendingUp, Users, DollarSign, Mail, Calendar, Activity } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 
 interface Stats {
@@ -14,6 +14,17 @@ interface Stats {
     activeOrders: number;
     todayOrders: number;
     todayCustomers: number;
+}
+
+interface VisitorPoint {
+    date: string;
+    count: number;
+}
+
+interface VisitorData {
+    series: VisitorPoint[];
+    today: number;
+    total: number;
 }
 
 interface UserSummary {
@@ -29,6 +40,8 @@ export default function AdminDashboard() {
     const [stats, setStats] = useState<Stats>({ categories: 0, products: 0, orders: 0, customers: 0 });
     const [recentUsers, setRecentUsers] = useState<UserSummary[]>([]);
     const [loading, setLoading] = useState(true);
+    const [visitorData, setVisitorData] = useState<VisitorData | null>(null);
+    const [visitorLoading, setVisitorLoading] = useState(true);
 
     const fetchStats = React.useCallback(async () => {
         try {
@@ -80,6 +93,24 @@ export default function AdminDashboard() {
         setLoading(true);
         fetchStats();
     }, [fetchStats]);
+
+    useEffect(() => {
+        async function fetchVisitors() {
+            try {
+                setVisitorLoading(true);
+                const res = await fetch('/api/admin/analytics/visitors');
+                if (!res.ok) throw new Error('Failed to load visitors');
+                const data = await res.json();
+                setVisitorData(data);
+            } catch (error) {
+                console.error(error);
+            } finally {
+                setVisitorLoading(false);
+            }
+        }
+
+        fetchVisitors();
+    }, []);
 
     function formatDate(dateString: string) {
         const date = new Date(dateString);
@@ -164,6 +195,42 @@ export default function AdminDashboard() {
             border: 'border-purple-500/20'
         },
     ];
+
+    function VisitorsSparkline({ points }: { points: VisitorPoint[] }) {
+        if (!points.length) return null;
+
+        const max = Math.max(...points.map(p => p.count), 1);
+        const width = 320;
+        const height = 96;
+        const step = width / Math.max(points.length - 1, 1);
+
+        const coords = points.map((p, i) => {
+            const x = i * step;
+            const y = height - (p.count / max) * height;
+            return `${x},${y}`;
+        }).join(' ');
+
+        return (
+            <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full text-emerald-400">
+                <polyline
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    points={coords}
+                    className="drop-shadow-[0_4px_12px_rgba(16,185,129,0.25)]"
+                />
+                {points.map((p, i) => {
+                    const x = i * step;
+                    const y = height - (p.count / max) * height;
+                    return (
+                        <circle key={p.date} cx={x} cy={y} r={3} fill="currentColor" className="opacity-80" />
+                    );
+                })}
+            </svg>
+        );
+    }
 
     return (
         <div className="space-y-10">
@@ -263,6 +330,38 @@ export default function AdminDashboard() {
                             ))}
                         </div>
                     )}
+                </CardContent>
+            </Card>
+
+            {/* Daily Visitors */}
+            <Card className="bg-gradient-to-br from-zinc-900 via-zinc-900/70 to-zinc-900 border border-white/5 overflow-hidden">
+                <CardContent className="p-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center">
+                                <Activity className="h-5 w-5 text-emerald-400" />
+                            </div>
+                            <div>
+                                <p className="text-sm text-zinc-400">Daily Visitors</p>
+                                <p className="text-2xl font-bold text-white">
+                                    {visitorLoading ? '—' : visitorData?.today ?? 0}
+                                    <span className="text-sm text-zinc-500 font-medium ml-2">today</span>
+                                </p>
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-xs text-zinc-500">Last 14 days</p>
+                            <p className="text-sm text-white font-semibold">{visitorLoading ? '—' : visitorData?.total ?? 0} visits</p>
+                        </div>
+                    </div>
+
+                    <div className="relative h-32">
+                        {visitorLoading || !visitorData?.series?.length ? (
+                            <div className="flex items-center justify-center h-full text-zinc-600 text-sm">Loading...</div>
+                        ) : (
+                            <VisitorsSparkline points={visitorData.series} />
+                        )}
+                    </div>
                 </CardContent>
             </Card>
 
