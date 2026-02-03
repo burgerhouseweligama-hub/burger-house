@@ -89,7 +89,15 @@ export default function AdminLayout({
             try {
                 const data = JSON.parse(event.data);
                 const amount = typeof data.totalAmount === 'number' ? data.totalAmount.toLocaleString() : '0';
-                showToast(`New order ${data.orderNumber || ''} - LKR ${amount}`, 'info');
+                const itemsText = Array.isArray(data.items)
+                    ? data.items.map((item: any) => `${item.name || 'Item'} x ${item.quantity || 1}`).join(', ')
+                    : '';
+                const customer = data.customerName ? ` • ${data.customerName}` : '';
+
+                showToast(
+                    `New order ${data.orderNumber || ''} - LKR ${amount}${itemsText ? ` • ${itemsText}` : ''}${customer}`,
+                    'info'
+                );
             } catch (error) {
                 console.error('Failed to parse order event', error);
             }

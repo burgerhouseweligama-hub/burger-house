@@ -129,6 +129,9 @@ export async function POST(req: NextRequest) {
             totalAmount: order.totalAmount,
             status: order.status,
             createdAt: order.createdAt,
+            customerName: fullName.trim(),
+            phone: phone.replace(/\s/g, ''),
+            items: orderItems.map((item: any) => ({ name: item.name, quantity: item.quantity })),
         });
 
         return NextResponse.json(
