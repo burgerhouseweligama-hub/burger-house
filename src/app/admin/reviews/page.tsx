@@ -71,17 +71,73 @@ export default function ReviewsPage() {
     }
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+        <div className="space-y-4 sm:space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">
                     Reviews Management
                 </h1>
-                <div className="text-gray-500">
+                <div className="text-sm sm:text-base text-gray-500">
                     Total Reviews: {reviews.length}
                 </div>
             </div>
 
-            <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow dark:border-gray-700 dark:bg-gray-800">
+            {/* Mobile Card View */}
+            <div className="block lg:hidden space-y-3">
+                {reviews.length === 0 ? (
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-8 text-center">
+                        <Star className="h-10 w-10 text-zinc-600 mx-auto mb-3" />
+                        <p className="text-zinc-500">No reviews found.</p>
+                    </div>
+                ) : (
+                    reviews.map((review) => (
+                        <div
+                            key={review._id}
+                            className="bg-zinc-900 border border-zinc-800 rounded-lg p-4"
+                        >
+                            <div className="flex items-start justify-between gap-3">
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-white font-medium truncate">{review.reviewerName}</p>
+                                    <div className="flex items-center text-yellow-400 mt-1">
+                                        {Array.from({ length: 5 }).map((_, i) => (
+                                            <Star
+                                                key={i}
+                                                className={`h-3 w-3 ${i < review.rating ? 'fill-current' : 'text-gray-600'}`}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => handleDelete(review._id)}
+                                    disabled={deletingId === review._id}
+                                    className="p-2 rounded-lg text-red-500 hover:bg-red-900/20 flex-shrink-0"
+                                >
+                                    {deletingId === review._id ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <Trash2 className="h-4 w-4" />
+                                    )}
+                                </button>
+                            </div>
+                            <p className="text-zinc-400 text-sm mt-2 line-clamp-2">{review.comment}</p>
+                            {review.images && review.images.length > 0 && (
+                                <div className="mt-2 flex gap-1">
+                                    {review.images.map((img, idx) => (
+                                        <div key={idx} className="relative h-8 w-8 overflow-hidden rounded bg-zinc-800">
+                                            <Image src={img} alt="review" fill className="object-cover" />
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            <p className="text-zinc-500 text-xs mt-2">
+                                {new Date(review.createdAt).toLocaleDateString()}
+                            </p>
+                        </div>
+                    ))
+                )}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden lg:block overflow-hidden rounded-lg border border-gray-200 bg-white shadow dark:border-gray-700 dark:bg-gray-800">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm text-gray-500 dark:text-gray-400">
                         <thead className="bg-gray-50 text-xs uppercase text-gray-700 dark:bg-gray-700 dark:text-gray-400">

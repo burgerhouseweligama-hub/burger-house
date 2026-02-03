@@ -142,20 +142,20 @@ export default function EditProductPage() {
 
     if (notFound) {
         return (
-            <div className="space-y-6">
-                <div className="flex items-center gap-4">
+            <div className="space-y-4 sm:space-y-6">
+                <div className="flex items-center gap-3 sm:gap-4">
                     <Link href="/admin/products">
-                        <Button variant="ghost" size="icon" className="text-zinc-400 hover:text-white hover:bg-zinc-800">
-                            <ArrowLeft className="h-5 w-5" />
+                        <Button variant="ghost" size="icon" className="text-zinc-400 hover:text-white hover:bg-zinc-800 h-8 w-8 sm:h-10 sm:w-10">
+                            <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
                         </Button>
                     </Link>
                     <div>
-                        <h2 className="text-2xl font-bold text-white">Product Not Found</h2>
-                        <p className="text-zinc-400">The product you're looking for doesn't exist</p>
+                        <h2 className="text-xl sm:text-2xl font-bold text-white">Product Not Found</h2>
+                        <p className="text-sm sm:text-base text-zinc-400">The product you're looking for doesn't exist</p>
                     </div>
                 </div>
                 <Link href="/admin/products">
-                    <Button className="bg-orange-500 hover:bg-orange-600">
+                    <Button className="bg-orange-500 hover:bg-orange-600 text-sm sm:text-base">
                         Back to Products
                     </Button>
                 </Link>
@@ -164,83 +164,83 @@ export default function EditProductPage() {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
             {/* Header */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
                 <Link href="/admin/products">
-                    <Button variant="ghost" size="icon" className="text-zinc-400 hover:text-white hover:bg-zinc-800">
-                        <ArrowLeft className="h-5 w-5" />
+                    <Button variant="ghost" size="icon" className="text-zinc-400 hover:text-white hover:bg-zinc-800 h-8 w-8 sm:h-10 sm:w-10">
+                        <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
                     </Button>
                 </Link>
                 <div>
-                    <h2 className="text-2xl font-bold text-white">Edit Product</h2>
-                    <p className="text-zinc-400">Update menu item details</p>
+                    <h2 className="text-xl sm:text-2xl font-bold text-white">Edit Product</h2>
+                    <p className="text-sm sm:text-base text-zinc-400">Update menu item details</p>
                 </div>
             </div>
 
             {/* Form Card */}
             <Card className="bg-zinc-900 border-zinc-800 max-w-3xl">
-                <CardHeader>
-                    <CardTitle className="text-white flex items-center">
-                        <UtensilsCrossed className="h-5 w-5 mr-2 text-orange-500" />
+                <CardHeader className="px-4 sm:px-6">
+                    <CardTitle className="text-white flex items-center text-base sm:text-lg">
+                        <UtensilsCrossed className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-orange-500" />
                         Product Details
                     </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
                     {loading ? (
-                        <div className="flex items-center justify-center py-12">
-                            <Loader2 className="h-8 w-8 text-orange-500 animate-spin" />
+                        <div className="flex items-center justify-center py-8 sm:py-12">
+                            <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 text-orange-500 animate-spin" />
                         </div>
                     ) : (
-                        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                            <div className="grid gap-6 md:grid-cols-2">
+                        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
+                            <div className="grid gap-4 sm:gap-6 sm:grid-cols-2">
                                 <div className="space-y-2">
-                                    <Label htmlFor="name">Product Name</Label>
+                                    <Label htmlFor="name" className="text-sm sm:text-base">Product Name</Label>
                                     <Input
                                         id="name"
                                         placeholder="e.g., Classic Burger"
-                                        className="bg-zinc-800 border-zinc-700 text-white"
+                                        className="bg-zinc-800 border-zinc-700 text-white text-sm sm:text-base"
                                         {...register('name', { required: 'Product name is required' })}
                                     />
                                     {errors.name && (
-                                        <p className="text-red-500 text-sm">{errors.name.message}</p>
+                                        <p className="text-red-500 text-xs sm:text-sm">{errors.name.message}</p>
                                     )}
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="price">Price (LKR)</Label>
+                                    <Label htmlFor="price" className="text-sm sm:text-base">Price (LKR)</Label>
                                     <Input
                                         id="price"
                                         type="number"
                                         step="1"
                                         min="0"
                                         placeholder="1500"
-                                        className="bg-zinc-800 border-zinc-700 text-white"
+                                        className="bg-zinc-800 border-zinc-700 text-white text-sm sm:text-base"
                                         {...register('price', {
                                             required: 'Price is required',
                                             min: { value: 0, message: 'Price must be positive' },
                                         })}
                                     />
                                     {errors.price && (
-                                        <p className="text-red-500 text-sm">{errors.price.message}</p>
+                                        <p className="text-red-500 text-xs sm:text-sm">{errors.price.message}</p>
                                     )}
                                 </div>
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="description">Description</Label>
+                                <Label htmlFor="description" className="text-sm sm:text-base">Description</Label>
                                 <textarea
                                     id="description"
                                     placeholder="Describe your product..."
                                     rows={3}
-                                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm sm:text-base"
                                     {...register('description')}
                                 />
                             </div>
 
-                            <div className="grid gap-6 md:grid-cols-2">
+                            <div className="grid gap-4 sm:gap-6 sm:grid-cols-2">
                                 <div className="space-y-2">
-                                    <Label>Category</Label>
+                                    <Label className="text-sm sm:text-base">Category</Label>
                                     <Controller
                                         name="category"
                                         control={control}
@@ -250,7 +250,7 @@ export default function EditProductPage() {
                                                 value={field.value}
                                                 onValueChange={field.onChange}
                                             >
-                                                <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white">
+                                                <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white text-sm sm:text-base">
                                                     <SelectValue placeholder="Select a category" />
                                                 </SelectTrigger>
                                                 <SelectContent className="bg-zinc-800 border-zinc-700">
@@ -268,12 +268,12 @@ export default function EditProductPage() {
                                         )}
                                     />
                                     {errors.category && (
-                                        <p className="text-red-500 text-sm">{errors.category.message}</p>
+                                        <p className="text-red-500 text-xs sm:text-sm">{errors.category.message}</p>
                                     )}
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label>Availability</Label>
+                                    <Label className="text-sm sm:text-base">Availability</Label>
                                     <div className="flex items-center space-x-2 h-10">
                                         <input
                                             type="checkbox"
@@ -281,7 +281,7 @@ export default function EditProductPage() {
                                             className="w-4 h-4 rounded bg-zinc-800 border-zinc-600 text-orange-500 focus:ring-orange-500"
                                             {...register('isAvailable')}
                                         />
-                                        <Label htmlFor="isAvailable" className="text-zinc-300 font-normal cursor-pointer">
+                                        <Label htmlFor="isAvailable" className="text-zinc-300 font-normal cursor-pointer text-sm sm:text-base">
                                             Product is available for order
                                         </Label>
                                     </div>
@@ -289,12 +289,12 @@ export default function EditProductPage() {
                             </div>
 
                             <div className="space-y-2">
-                                <Label>Product Image</Label>
+                                <Label className="text-sm sm:text-base">Product Image</Label>
                                 <ImageUpload value={imageUrl} onChange={setImageUrl} disabled={saving} />
                                 {imageUrl && (
-                                    <div className="mt-4">
-                                        <p className="text-sm text-zinc-400 mb-2">Current Image:</p>
-                                        <div className="relative w-32 h-32 rounded-lg overflow-hidden bg-zinc-800">
+                                    <div className="mt-3 sm:mt-4">
+                                        <p className="text-xs sm:text-sm text-zinc-400 mb-2">Current Image:</p>
+                                        <div className="relative w-24 h-24 sm:w-32 sm:h-32 rounded-lg overflow-hidden bg-zinc-800">
                                             <Image
                                                 src={imageUrl}
                                                 alt="Product preview"
@@ -307,17 +307,17 @@ export default function EditProductPage() {
                             </div>
 
                             {error && (
-                                <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
-                                    <p className="text-red-500 text-sm">{error}</p>
+                                <div className="p-3 sm:p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+                                    <p className="text-red-500 text-xs sm:text-sm">{error}</p>
                                 </div>
                             )}
 
-                            <div className="flex justify-end gap-3 pt-4 border-t border-zinc-800">
-                                <Link href="/admin/products">
+                            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 pt-4 border-t border-zinc-800">
+                                <Link href="/admin/products" className="w-full sm:w-auto">
                                     <Button
                                         type="button"
                                         variant="outline"
-                                        className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+                                        className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 w-full"
                                     >
                                         Cancel
                                     </Button>
@@ -325,7 +325,7 @@ export default function EditProductPage() {
                                 <Button
                                     type="submit"
                                     disabled={saving}
-                                    className="bg-orange-500 hover:bg-orange-600"
+                                    className="bg-orange-500 hover:bg-orange-600 w-full sm:w-auto"
                                 >
                                     {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                                     Update Product

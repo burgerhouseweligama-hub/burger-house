@@ -117,21 +117,21 @@ export default function CategoriesPage() {
     }
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
+        <div className="space-y-4 sm:space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold text-white">Categories</h2>
-                    <p className="text-zinc-400">Manage your menu categories</p>
+                    <h2 className="text-xl sm:text-2xl font-bold text-white">Categories</h2>
+                    <p className="text-sm sm:text-base text-zinc-400">Manage your menu categories</p>
                 </div>
 
                 <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                     <DialogTrigger asChild>
-                        <Button className="bg-orange-500 hover:bg-orange-600">
+                        <Button className="bg-orange-500 hover:bg-orange-600 w-full sm:w-auto text-sm sm:text-base">
                             <Plus className="h-4 w-4 mr-2" />
                             Add Category
                         </Button>
                     </DialogTrigger>
-                    <DialogContent className="bg-zinc-900 border-zinc-800 text-white">
+                    <DialogContent className="bg-zinc-900 border-zinc-800 text-white mx-4 sm:mx-auto max-w-md">
                         <DialogHeader>
                             <DialogTitle>Create New Category</DialogTitle>
                         </DialogHeader>
@@ -155,22 +155,22 @@ export default function CategoriesPage() {
                             </div>
 
                             {error && (
-                                <p className="text-red-500 text-sm">{error}</p>
+                                <p className="text-red-500 text-xs sm:text-sm">{error}</p>
                             )}
 
-                            <div className="flex justify-end gap-3">
+                            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3">
                                 <Button
                                     type="button"
                                     variant="outline"
                                     onClick={() => setDialogOpen(false)}
-                                    className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+                                    className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 w-full sm:w-auto"
                                 >
                                     Cancel
                                 </Button>
                                 <Button
                                     type="submit"
                                     disabled={saving}
-                                    className="bg-orange-500 hover:bg-orange-600"
+                                    className="bg-orange-500 hover:bg-orange-600 w-full sm:w-auto"
                                 >
                                     {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                                     Create Category
@@ -182,27 +182,74 @@ export default function CategoriesPage() {
             </div>
 
             <Card className="bg-zinc-900 border-zinc-800">
-                <CardHeader>
-                    <CardTitle className="text-white flex items-center">
-                        <Grid3X3 className="h-5 w-5 mr-2 text-orange-500" />
+                <CardHeader className="px-4 sm:px-6">
+                    <CardTitle className="text-white flex items-center text-base sm:text-lg">
+                        <Grid3X3 className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-orange-500" />
                         All Categories
                     </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
                     {loading ? (
-                        <div className="flex items-center justify-center py-12">
-                            <Loader2 className="h-8 w-8 text-orange-500 animate-spin" />
+                        <div className="flex items-center justify-center py-8 sm:py-12">
+                            <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 text-orange-500 animate-spin" />
                         </div>
                     ) : categories.length === 0 ? (
-                        <div className="text-center py-12">
-                            <Grid3X3 className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
-                            <p className="text-zinc-400">No categories yet</p>
-                            <p className="text-zinc-500 text-sm">
+                        <div className="text-center py-8 sm:py-12">
+                            <Grid3X3 className="h-10 w-10 sm:h-12 sm:w-12 text-zinc-600 mx-auto mb-3 sm:mb-4" />
+                            <p className="text-zinc-400 text-sm sm:text-base">No categories yet</p>
+                            <p className="text-zinc-500 text-xs sm:text-sm">
                                 Create your first category to get started
                             </p>
                         </div>
                     ) : (
-                        <div className="overflow-x-auto">
+                        <>
+                            {/* Mobile Card View */}
+                            <div className="block lg:hidden space-y-3">
+                                {categories.map((category) => (
+                                    <div
+                                        key={category._id}
+                                        className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-12 h-12 rounded-lg overflow-hidden bg-zinc-800 flex-shrink-0">
+                                                {category.image ? (
+                                                    <Image
+                                                        src={category.image}
+                                                        alt={category.name}
+                                                        width={48}
+                                                        height={48}
+                                                        className="object-cover w-full h-full"
+                                                    />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center">
+                                                        <Grid3X3 className="h-5 w-5 text-zinc-600" />
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-white font-medium truncate">{category.name}</p>
+                                                <p className="text-zinc-500 text-xs truncate">{category.slug}</p>
+                                            </div>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 text-red-500 hover:text-red-400 hover:bg-red-500/10 flex-shrink-0"
+                                                onClick={() => deleteCategory(category._id)}
+                                                disabled={deleting === category._id}
+                                            >
+                                                {deleting === category._id ? (
+                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                ) : (
+                                                    <Trash2 className="h-4 w-4" />
+                                                )}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Desktop Table View */}
+                            <div className="hidden lg:block overflow-x-auto">
                             <Table>
                                 <TableHeader>
                                     <TableRow className="border-zinc-800 hover:bg-transparent">
@@ -261,6 +308,7 @@ export default function CategoriesPage() {
                                 </TableBody>
                             </Table>
                         </div>
+                        </>
                     )}
                 </CardContent>
             </Card>

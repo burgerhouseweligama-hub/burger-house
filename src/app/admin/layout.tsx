@@ -297,8 +297,8 @@ export default function AdminLayout({
             {/* Main content area */}
             <div className="lg:pl-72 transition-all duration-300">
                 {/* Top bar */}
-                <header className="sticky top-0 z-30 h-20 bg-black/50 backdrop-blur-xl border-b border-white/5">
-                    <div className="flex items-center justify-between h-full px-8">
+                <header className="sticky top-0 z-30 h-16 sm:h-20 bg-black/50 backdrop-blur-xl border-b border-white/5">
+                    <div className="flex items-center justify-between h-full px-4 sm:px-6 lg:px-8">
                         <div className="flex items-center gap-4">
                             <Button
                                 variant="ghost"
@@ -310,12 +310,12 @@ export default function AdminLayout({
                             </Button>
 
                             {/* Search (Visual Only) */}
-                            <div className="hidden md:flex items-center gap-3 px-4 py-2 bg-zinc-900/50 rounded-full border border-white/5 w-64 focus-within:border-orange-500/50 focus-within:ring-1 focus-within:ring-orange-500/50 transition-all">
-                                <Search className="h-4 w-4 text-zinc-500" />
+                            <div className="hidden sm:flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 bg-zinc-900/50 rounded-full border border-white/5 w-40 sm:w-48 md:w-64 focus-within:border-orange-500/50 focus-within:ring-1 focus-within:ring-orange-500/50 transition-all">
+                                <Search className="h-4 w-4 text-zinc-500 flex-shrink-0" />
                                 <input
                                     type="text"
                                     placeholder="Search..."
-                                    className="bg-transparent border-none outline-none text-sm text-zinc-200 placeholder:text-zinc-600 w-full"
+                                    className="bg-transparent border-none outline-none text-sm text-zinc-200 placeholder:text-zinc-600 w-full min-w-0"
                                 />
                             </div>
                         </div>
@@ -335,7 +335,7 @@ export default function AdminLayout({
                                 </button>
 
                                 {notificationsOpen && (
-                                    <div className="absolute right-0 mt-3 w-80 bg-zinc-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
+                                    <div className="absolute right-0 mt-3 w-72 sm:w-80 bg-zinc-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
                                         <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
                                             <div>
                                                 <p className="text-white font-semibold">Notifications</p>
@@ -393,14 +393,14 @@ export default function AdminLayout({
                                 )}
                             </div>
 
-                            <div className="h-8 w-px bg-white/10 mx-2" />
+                            <div className="h-6 sm:h-8 w-px bg-white/10 mx-1 sm:mx-2" />
 
-                            <div className="flex items-center gap-3 pl-2">
-                                <div className="text-right hidden sm:block">
+                            <div className="flex items-center gap-2 sm:gap-3 pl-1 sm:pl-2">
+                                <div className="text-right hidden md:block">
                                     <p className="text-sm font-medium text-white">Admin User</p>
                                     <p className="text-xs text-zinc-500">Super Admin</p>
                                 </div>
-                                <Avatar className="h-10 w-10 border-2 border-orange-500/20">
+                                <Avatar className="h-8 w-8 sm:h-10 sm:w-10 border-2 border-orange-500/20">
                                     <AvatarImage src="/avatars/admin.png" />
                                     <AvatarFallback className="bg-gradient-to-br from-orange-500 to-red-600 text-white font-bold">
                                         <User className="h-5 w-5" />
@@ -412,7 +412,7 @@ export default function AdminLayout({
                 </header>
 
                 {/* Page content */}
-                <main className="p-8">
+                <main className="p-4 sm:p-6 lg:p-8">
                     <div className="max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {children}
                     </div>
