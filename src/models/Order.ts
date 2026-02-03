@@ -27,8 +27,16 @@ export interface IOrder extends Document {
     deliveryDetails: IDeliveryDetails;
     items: IOrderItem[];
     totalAmount: number;
-    paymentMethod: 'cash_on_delivery';
-    status: 'received' | 'preparing' | 'out_for_delivery' | 'delivered' | 'cancelled';
+    paymentMethod: 'cash_on_delivery' | 'order_reserve';
+    status:
+    | 'order_received'
+    | 'pending_confirmation'
+    | 'preparing'
+    | 'ready_for_pickup'
+    | 'picked_up'
+    | 'out_for_delivery'
+    | 'delivered'
+    | 'cancelled';
     orderNumber: string;
     createdAt: Date;
     updatedAt: Date;
@@ -128,13 +136,22 @@ const OrderSchema = new Schema<IOrder>(
         },
         paymentMethod: {
             type: String,
-            enum: ['cash_on_delivery'],
+            enum: ['cash_on_delivery', 'order_reserve'],
             default: 'cash_on_delivery',
         },
         status: {
             type: String,
-            enum: ['received', 'preparing', 'out_for_delivery', 'delivered', 'cancelled'],
-            default: 'received',
+            enum: [
+                'order_received',
+                'pending_confirmation',
+                'preparing',
+                'ready_for_pickup',
+                'picked_up',
+                'out_for_delivery',
+                'delivered',
+                'cancelled',
+            ],
+            default: 'pending_confirmation',
         },
         orderNumber: {
             type: String,
@@ -161,7 +178,12 @@ OrderSchema.index({ status: 1 });
 // orderNumber is already indexed by unique: true
 OrderSchema.index({ createdAt: -1 });
 
-const Order: Model<IOrder> =
-    mongoose.models.Order || mongoose.model<IOrder>('Order', OrderSchema);
+// During hot-reload in Next.js dev, the model can exist with an older schema.
+// Remove it first so we always use the latest enum definitions.
+if (mongoose.models.Order) {
+    delete mongoose.models.Order;
+}
+
+const Order: Model<IOrder> = mongoose.model<IOrder>('Order', OrderSchema);
 
 export default Order;

@@ -46,7 +46,16 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { email, phone, deliveryDetails } = body;
+        const { email, phone, deliveryDetails, orderType } = body;
+
+        // Validate order type / payment method
+        const paymentChoice = orderType === 'cod' ? 'cash_on_delivery' : orderType === 'reserve' ? 'order_reserve' : null;
+        if (!paymentChoice) {
+            return NextResponse.json(
+                { message: 'Invalid payment method. Use "cod" or "reserve".' },
+                { status: 400 }
+            );
+        }
 
         // Validate required fields
         if (!email || !phone || !deliveryDetails) {
@@ -66,11 +75,20 @@ export async function POST(req: NextRequest) {
 
         // Validate delivery details
         const { fullName, address, city, postalCode } = deliveryDetails;
-        if (!fullName || !address || !city || !postalCode) {
+        if (!fullName) {
             return NextResponse.json(
-                { message: 'All delivery details are required (fullName, address, city, postalCode)' },
+                { message: 'Full name is required' },
                 { status: 400 }
             );
+        }
+
+        if (paymentChoice === 'cash_on_delivery') {
+            if (!address || !city || !postalCode) {
+                return NextResponse.json(
+                    { message: 'Address, city, and postal code are required for delivery orders' },
+                    { status: 400 }
+                );
+            }
         }
 
         // Get user's cart
@@ -103,17 +121,25 @@ export async function POST(req: NextRequest) {
             user: userId,
             email: email.toLowerCase().trim(),
             phone: phone.replace(/\s/g, ''),
-            deliveryDetails: {
-                fullName: fullName.trim(),
-                address: address.trim(),
-                city: city.trim(),
-                postalCode: postalCode.trim(),
-                location: deliveryDetails.location || null,
-            },
+            deliveryDetails: paymentChoice === 'cash_on_delivery'
+                ? {
+                    fullName: fullName.trim(),
+                    address: address.trim(),
+                    city: city.trim(),
+                    postalCode: postalCode.trim(),
+                    location: deliveryDetails.location || null,
+                }
+                : {
+                    fullName: fullName.trim(),
+                    address: 'Store Pickup',
+                    city: 'Pickup',
+                    postalCode: '-',
+                    location: null,
+                },
             items: orderItems,
             totalAmount,
-            paymentMethod: 'cash_on_delivery',
-            status: 'received',
+            paymentMethod: paymentChoice,
+            status: paymentChoice === 'cash_on_delivery' ? 'pending_confirmation' : 'order_received',
         });
 
         await order.save();

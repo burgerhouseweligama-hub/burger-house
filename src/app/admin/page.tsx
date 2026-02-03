@@ -37,7 +37,16 @@ interface UserSummary {
 }
 
 export default function AdminDashboard() {
-    const [stats, setStats] = useState<Stats>({ categories: 0, products: 0, orders: 0, customers: 0 });
+    const [stats, setStats] = useState<Stats>({
+        categories: 0,
+        products: 0,
+        orders: 0,
+        customers: 0,
+        revenue: 0,
+        activeOrders: 0,
+        todayOrders: 0,
+        todayCustomers: 0
+    });
     const [recentUsers, setRecentUsers] = useState<UserSummary[]>([]);
     const [loading, setLoading] = useState(true);
     const [visitorData, setVisitorData] = useState<VisitorData | null>(null);

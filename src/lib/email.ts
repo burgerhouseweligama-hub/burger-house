@@ -20,28 +20,60 @@ interface Order {
     };
 }
 
-type OrderStatus = 'received' | 'preparing' | 'out_for_delivery' | 'delivered' | 'cancelled';
+type OrderStatus =
+    | 'order_received'
+    | 'pending_confirmation'
+    | 'preparing'
+    | 'ready_for_pickup'
+    | 'picked_up'
+    | 'out_for_delivery'
+    | 'delivered'
+    | 'cancelled';
 
 const statusMessages: Record<OrderStatus, { subject: string; heading: string; message: string; emoji: string; color: string; badgeColor: string }> = {
-    received: {
+    order_received: {
         subject: 'Order Received - Burger House',
-        heading: 'Order Confirmed! 🎉',
-        message: 'We have received your order and it will be processed shortly.',
+        heading: 'Order Received 🎉',
+        message: 'We have received your order and will start preparing it shortly.',
         emoji: '📋',
         color: '#3b82f6',
         badgeColor: '#dbeafe',
     },
+    pending_confirmation: {
+        subject: 'Order Pending Confirmation - Burger House',
+        heading: 'Pending Confirmation ⏳',
+        message: 'We are confirming your delivery details and will begin preparing soon.',
+        emoji: '⏳',
+        color: '#f59e0b',
+        badgeColor: '#fef3c7',
+    },
     preparing: {
         subject: 'Your Order is Being Prepared - Burger House',
-        heading: 'Cooking in Progress! 👨‍🍳',
+        heading: 'Cooking in Progress 👨‍🍳',
         message: 'Our chefs are preparing your delicious meal with care.',
         emoji: '🍳',
         color: '#f97316',
         badgeColor: '#ffedd5',
     },
+    ready_for_pickup: {
+        subject: 'Your Order is Ready for Pickup - Burger House',
+        heading: 'Ready for Pickup 🎉',
+        message: 'Your order is ready. Please collect it at the store.',
+        emoji: '📦',
+        color: '#6366f1',
+        badgeColor: '#e0e7ff',
+    },
+    picked_up: {
+        subject: 'Order Picked Up - Burger House',
+        heading: 'Order Picked Up ✅',
+        message: 'Thank you for picking up your order. Enjoy your meal!',
+        emoji: '✅',
+        color: '#22c55e',
+        badgeColor: '#dcfce7',
+    },
     out_for_delivery: {
         subject: 'Your Order is On the Way - Burger House',
-        heading: 'Out for Delivery! 🚀',
+        heading: 'Out for Delivery 🚀',
         message: 'Your order is on its way to you. Get ready to enjoy!',
         emoji: '🛵',
         color: '#8b5cf6',
@@ -49,7 +81,7 @@ const statusMessages: Record<OrderStatus, { subject: string; heading: string; me
     },
     delivered: {
         subject: 'Order Delivered - Burger House',
-        heading: 'Order Delivered! ✅',
+        heading: 'Order Delivered ✅',
         message: 'Your order has been delivered. Enjoy your meal!',
         emoji: '✅',
         color: '#22c55e',

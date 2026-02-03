@@ -92,7 +92,16 @@ export async function PUT(
         const { status } = body;
 
         // Validate status
-        const validStatuses = ['received', 'preparing', 'out_for_delivery', 'delivered', 'cancelled'];
+        const validStatuses = [
+            'order_received',
+            'pending_confirmation',
+            'preparing',
+            'ready_for_pickup',
+            'picked_up',
+            'out_for_delivery',
+            'delivered',
+            'cancelled',
+        ];
         if (!status || !validStatuses.includes(status)) {
             return NextResponse.json(
                 { message: `Invalid status. Must be one of: ${validStatuses.join(', ')}` },

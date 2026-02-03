@@ -19,16 +19,22 @@ interface Order {
 }
 
 const statusColors: Record<string, string> = {
-    received: 'bg-blue-500/20 text-blue-400 border-blue-500/50',
-    preparing: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50',
+    order_received: 'bg-blue-500/20 text-blue-400 border-blue-500/50',
+    pending_confirmation: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50',
+    preparing: 'bg-amber-500/20 text-amber-400 border-amber-500/50',
+    ready_for_pickup: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/50',
+    picked_up: 'bg-green-500/20 text-green-400 border-green-500/50',
     out_for_delivery: 'bg-orange-500/20 text-orange-400 border-orange-500/50',
-    delivered: 'bg-green-500/20 text-green-400 border-green-500/50',
+    delivered: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50',
     cancelled: 'bg-red-500/20 text-red-400 border-red-500/50',
 };
 
 const statusLabels: Record<string, string> = {
-    received: 'Received',
+    order_received: 'Order Received',
+    pending_confirmation: 'Pending Confirmation',
     preparing: 'Preparing',
+    ready_for_pickup: 'Ready for Pickup',
+    picked_up: 'Picked Up',
     out_for_delivery: 'Out for Delivery',
     delivered: 'Delivered',
     cancelled: 'Cancelled',

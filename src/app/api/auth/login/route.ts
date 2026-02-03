@@ -3,6 +3,7 @@ import connectDB from '@/lib/db';
 import User from '@/models/User';
 import { generateToken } from '@/lib/auth';
 import { seedAdmin } from '@/lib/seedAdmin';
+import { seedMockData } from '@/lib/seedMockData';
 
 export async function POST(request: NextRequest) {
     try {
@@ -10,6 +11,7 @@ export async function POST(request: NextRequest) {
 
         // Seed admin on first login attempt
         await seedAdmin();
+        await seedMockData();
 
         const body = await request.json();
         const { email, password } = body;

@@ -79,16 +79,22 @@ interface Order {
 }
 
 const statusColors: Record<string, string> = {
-    received: 'bg-blue-500/20 text-blue-400 border-blue-500/50',
-    preparing: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50',
+    order_received: 'bg-blue-500/20 text-blue-400 border-blue-500/50',
+    pending_confirmation: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50',
+    preparing: 'bg-amber-500/20 text-amber-400 border-amber-500/50',
+    ready_for_pickup: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/50',
+    picked_up: 'bg-green-500/20 text-green-400 border-green-500/50',
     out_for_delivery: 'bg-orange-500/20 text-orange-400 border-orange-500/50',
-    delivered: 'bg-green-500/20 text-green-400 border-green-500/50',
+    delivered: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50',
     cancelled: 'bg-red-500/20 text-red-400 border-red-500/50',
 };
 
 const statusLabels: Record<string, string> = {
-    received: 'Received',
+    order_received: 'Order Received',
+    pending_confirmation: 'Pending Confirmation',
     preparing: 'Preparing',
+    ready_for_pickup: 'Ready for Pickup',
+    picked_up: 'Picked Up',
     out_for_delivery: 'Out for Delivery',
     delivered: 'Delivered',
     cancelled: 'Cancelled',
@@ -187,6 +193,25 @@ export default function OrderDetailsPage() {
             </div>
         );
     }
+
+    const isPickup = order.paymentMethod === 'order_reserve';
+
+    // Status options split by order type to avoid irrelevant steps
+    const pickupStatuses = [
+        { value: 'order_received', label: 'Order Received' },
+        { value: 'preparing', label: 'Preparing' },
+        { value: 'ready_for_pickup', label: 'Ready for Pickup' },
+        { value: 'picked_up', label: 'Picked Up' },
+        { value: 'cancelled', label: 'Cancelled' },
+    ];
+
+    const deliveryStatuses = [
+        { value: 'pending_confirmation', label: 'Pending Confirmation' },
+        { value: 'preparing', label: 'Preparing' },
+        { value: 'out_for_delivery', label: 'Out for Delivery' },
+        { value: 'delivered', label: 'Delivered' },
+        { value: 'cancelled', label: 'Cancelled' },
+    ];
 
     return (
         <div className="space-y-4 sm:space-y-6">
@@ -350,9 +375,7 @@ export default function OrderDetailsPage() {
                                 <div className="flex items-center gap-2 text-xs sm:text-sm">
                                     <CreditCard className="h-3 w-3 sm:h-4 sm:w-4 text-zinc-500 flex-shrink-0" />
                                     <span className="text-zinc-300">
-                                        {order.paymentMethod === 'cash_on_delivery'
-                                            ? 'Cash on Delivery'
-                                            : order.paymentMethod}
+                                        {order.paymentMethod === 'cash_on_delivery' ? 'Cash on Delivery' : 'Order Reserve'}
                                     </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-xs sm:text-sm">
@@ -376,21 +399,11 @@ export default function OrderDetailsPage() {
                                     <SelectValue placeholder="Select status" />
                                 </SelectTrigger>
                                 <SelectContent className="bg-zinc-800 border-zinc-700">
-                                    <SelectItem value="received" className="text-white">
-                                        Received
-                                    </SelectItem>
-                                    <SelectItem value="preparing" className="text-white">
-                                        Preparing
-                                    </SelectItem>
-                                    <SelectItem value="out_for_delivery" className="text-white">
-                                        Out for Delivery
-                                    </SelectItem>
-                                    <SelectItem value="delivered" className="text-white">
-                                        Delivered
-                                    </SelectItem>
-                                    <SelectItem value="cancelled" className="text-white">
-                                        Cancelled
-                                    </SelectItem>
+                                    {(isPickup ? pickupStatuses : deliveryStatuses).map((s) => (
+                                        <SelectItem key={s.value} value={s.value} className="text-white">
+                                            {s.label}
+                                        </SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
 
