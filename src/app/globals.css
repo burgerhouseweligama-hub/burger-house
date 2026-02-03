@@ -123,11 +123,12 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground overflow-x-hidden;
     font-family: var(--font-body);
     font-size: 1rem;
     line-height: 1.7;
     letter-spacing: 0.01em;
+    min-height: 100dvh;
   }
 
   /* Typography - Headings */

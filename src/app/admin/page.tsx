@@ -2,37 +2,74 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Grid3X3, UtensilsCrossed, ArrowRight, Loader2, ShoppingBag, TrendingUp, Users, DollarSign } from 'lucide-react';
+import { Grid3X3, UtensilsCrossed, ArrowRight, Loader2, ShoppingBag, TrendingUp, Users, DollarSign, Mail, Calendar } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 
 interface Stats {
     categories: number;
     products: number;
     orders: number;
+    customers: number;
+    revenue: number;
+    activeOrders: number;
+    todayOrders: number;
+    todayCustomers: number;
+}
+
+interface UserSummary {
+    _id: string;
+    name: string;
+    email: string;
+    role: string;
+    authProvider?: string;
+    createdAt: string;
 }
 
 export default function AdminDashboard() {
-    const [stats, setStats] = useState<Stats>({ categories: 0, products: 0, orders: 0 });
+    const [stats, setStats] = useState<Stats>({ categories: 0, products: 0, orders: 0, customers: 0 });
+    const [recentUsers, setRecentUsers] = useState<UserSummary[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         async function fetchStats() {
             try {
-                const [categoriesRes, productsRes, ordersRes] = await Promise.all([
+                const [categoriesRes, productsRes, ordersRes, usersRes] = await Promise.all([
                     fetch('/api/categories'),
                     fetch('/api/products'),
                     fetch('/api/admin/orders'),
+                    fetch('/api/admin/users?limit=6'),
                 ]);
 
-                const categories = await categoriesRes.json();
-                const products = await productsRes.json();
-                const orders = await ordersRes.json();
+                if (!categoriesRes.ok || !productsRes.ok || !ordersRes.ok || !usersRes.ok) {
+                    throw new Error('Failed to fetch admin stats');
+                }
+
+                const [categories, products, orders, usersData] = await Promise.all([
+                    categoriesRes.json(),
+                    productsRes.json(),
+                    ordersRes.json(),
+                    usersRes.json(),
+                ]);
+
+                const ordersArray = Array.isArray(orders) ? orders : [];
+                const todayStart = new Date();
+                todayStart.setHours(0, 0, 0, 0);
+
+                const totalRevenue = ordersArray.reduce((sum: number, order: any) => sum + (order.totalAmount || 0), 0);
+                const activeOrders = ordersArray.filter((order: any) => order.status !== 'delivered' && order.status !== 'cancelled').length;
+                const todayOrders = ordersArray.filter((order: any) => order.createdAt && new Date(order.createdAt) >= todayStart).length;
 
                 setStats({
                     categories: Array.isArray(categories) ? categories.length : 0,
                     products: Array.isArray(products) ? products.length : 0,
-                    orders: Array.isArray(orders) ? orders.length : 0,
+                    orders: ordersArray.length,
+                    customers: typeof usersData?.total === 'number' ? usersData.total : 0,
+                    revenue: totalRevenue,
+                    activeOrders,
+                    todayOrders,
+                    todayCustomers: typeof usersData?.todayNew === 'number' ? usersData.todayNew : 0,
                 });
+                setRecentUsers(Array.isArray(usersData?.users) ? usersData.users : []);
             } catch (error) {
                 console.error('Error fetching stats:', error);
             } finally {
@@ -43,11 +80,27 @@ export default function AdminDashboard() {
         fetchStats();
     }, []);
 
+    function formatDate(dateString: string) {
+        const date = new Date(dateString);
+        if (Number.isNaN(date.getTime())) {
+            return '—';
+        }
+
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+        });
+    }
+
+    const safeNumber = (value: number | undefined | null) => Number.isFinite(value) ? Number(value) : 0;
+
     const dashboardCards = [
         {
             title: 'Total Revenue',
-            value: '$12,450', // Mock data for now
-            subValue: '+15.3% from last month',
+            value: `LKR ${safeNumber(stats.revenue).toLocaleString()}`,
+            subValue: `${safeNumber(stats.orders)} orders total`,
+            badgeText: safeNumber(stats.todayOrders) ? `+${safeNumber(stats.todayOrders)} today` : 'Live',
             icon: DollarSign,
             href: '/admin/orders',
             gradient: 'from-emerald-500 to-teal-600',
@@ -57,8 +110,9 @@ export default function AdminDashboard() {
         },
         {
             title: 'Active Orders',
-            value: stats.orders.toString(),
-            subValue: '+5 new today',
+            value: safeNumber(stats.activeOrders).toString(),
+            subValue: `${safeNumber(stats.todayOrders)} new today`,
+            badgeText: safeNumber(stats.todayOrders) ? `+${safeNumber(stats.todayOrders)} today` : 'Live',
             icon: ShoppingBag,
             href: '/admin/orders',
             gradient: 'from-orange-500 to-red-600',
@@ -68,8 +122,9 @@ export default function AdminDashboard() {
         },
         {
             title: 'Menu Items',
-            value: stats.products.toString(),
-            subValue: `${stats.categories} categories active`,
+            value: safeNumber(stats.products).toString(),
+            subValue: `${safeNumber(stats.categories)} categories active`,
+            badgeText: 'Live',
             icon: UtensilsCrossed,
             href: '/admin/products',
             gradient: 'from-blue-500 to-indigo-600',
@@ -79,8 +134,9 @@ export default function AdminDashboard() {
         },
         {
             title: 'Total Customers',
-            value: '1,205', // Mock data
-            subValue: '+12% new users',
+            value: safeNumber(stats.customers).toLocaleString(),
+            subValue: `${recentUsers.length} recent signups`,
+            badgeText: safeNumber(stats.todayCustomers) ? `+${safeNumber(stats.todayCustomers)} today` : 'Live',
             icon: Users,
             href: '/admin/users', // Assuming this route might exist or be added
             gradient: 'from-purple-500 to-pink-600',
@@ -126,7 +182,7 @@ export default function AdminDashboard() {
                                     </div>
                                     <div className="flex items-center text-xs font-medium text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-full border border-emerald-500/20">
                                         <TrendingUp className="h-3 w-3 mr-1" />
-                                        +12%
+                                        {card.badgeText}
                                     </div>
                                 </div>
 
@@ -144,6 +200,52 @@ export default function AdminDashboard() {
                     </Link>
                 ))}
             </div>
+
+            {/* Recent Customers */}
+            <Card className="bg-zinc-900/50 border-white/5">
+                <CardContent className="p-6 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div>
+                            <h3 className="text-xl font-bold text-white">Recent Customers</h3>
+                            <p className="text-zinc-500 text-sm">Live data from the database</p>
+                        </div>
+                        <Link href="/admin/users" className="text-sm font-medium text-orange-400 hover:text-orange-300 transition-colors">
+                            View all customers
+                        </Link>
+                    </div>
+
+                    {loading ? (
+                        <div className="flex items-center justify-center py-8">
+                            <Loader2 className="h-6 w-6 text-orange-500 animate-spin" />
+                        </div>
+                    ) : recentUsers.length === 0 ? (
+                        <p className="text-zinc-500 text-sm">No customers found yet.</p>
+                    ) : (
+                        <div className="space-y-4">
+                            {recentUsers.map((user) => (
+                                <div key={user._id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl bg-zinc-900/80 border border-white/5">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-10 w-10 rounded-xl bg-orange-500/10 border border-orange-500/30 flex items-center justify-center">
+                                            <Users className="h-5 w-5 text-orange-400" />
+                                        </div>
+                                        <div>
+                                            <p className="text-white font-semibold">{user.name || 'Customer'}</p>
+                                            <div className="flex items-center gap-3 text-xs text-zinc-400">
+                                                <span className="inline-flex items-center gap-1"><Mail className="h-3 w-3" />{user.email}</span>
+                                                <span className="inline-flex items-center gap-1 text-amber-400/90 capitalize">{user.authProvider || 'local'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="text-sm text-zinc-400 flex items-center gap-2">
+                                        <Calendar className="h-4 w-4 text-zinc-500" />
+                                        <span>Joined {formatDate(user.createdAt)}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
 
             {/* Quick Actions */}
             <div>

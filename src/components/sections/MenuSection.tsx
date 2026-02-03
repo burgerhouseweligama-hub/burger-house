@@ -97,12 +97,12 @@ export default function MenuSection() {
                 {/* Category Filter Tabs */}
                 {categories.length > 0 && (
                     <div className="mb-12">
-                        <div className="flex flex-wrap justify-center gap-3">
+                        <div className="flex flex-nowrap md:flex-wrap overflow-x-auto pb-4 md:pb-0 justify-start md:justify-center gap-3 px-4 md:px-0 scrollbar-hide snap-x">
                             <button
                                 onClick={() => setSelectedCategory(null)}
-                                className={`group relative px-6 py-3 rounded-2xl font-semibold text-sm transition-all duration-300 overflow-hidden ${selectedCategory === null
-                                        ? "text-white"
-                                        : "text-zinc-400 hover:text-white bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700"
+                                className={`group relative px-6 py-3 rounded-2xl font-semibold text-sm transition-all duration-300 whitespace-nowrap snap-center flex-shrink-0 ${selectedCategory === null
+                                    ? "text-white"
+                                    : "text-zinc-400 hover:text-white bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700"
                                     }`}
                             >
                                 {selectedCategory === null && (
@@ -117,9 +117,9 @@ export default function MenuSection() {
                                 <button
                                     key={category._id}
                                     onClick={() => setSelectedCategory(category._id)}
-                                    className={`group relative px-6 py-3 rounded-2xl font-semibold text-sm transition-all duration-300 overflow-hidden ${selectedCategory === category._id
-                                            ? "text-white"
-                                            : "text-zinc-400 hover:text-white bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700"
+                                    className={`group relative px-6 py-3 rounded-2xl font-semibold text-sm transition-all duration-300 whitespace-nowrap snap-center flex-shrink-0 ${selectedCategory === category._id
+                                        ? "text-white"
+                                        : "text-zinc-400 hover:text-white bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700"
                                         }`}
                                 >
                                     {selectedCategory === category._id && (

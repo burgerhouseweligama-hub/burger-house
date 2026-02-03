@@ -72,7 +72,7 @@ export default function AddToCartButton({ product }: { product: Product }) {
                 ) : (
                     <ShoppingCart className="w-5 h-5" />
                 )}
-                Add to Cart - ${(product.price * quantity).toFixed(2)}
+                Add to Cart - LKR {(product.price * quantity).toFixed(2)}
             </button>
         </div>
     );

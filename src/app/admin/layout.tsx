@@ -16,14 +16,17 @@ import {
     ShoppingBag,
     Bell,
     Search,
-    User
+    User,
+    Users
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useToast } from '@/context/ToastContext';
 
 const sidebarItems = [
     { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
     { name: 'Orders', href: '/admin/orders', icon: ShoppingBag },
+    { name: 'Users', href: '/admin/users', icon: Users },
     { name: 'Categories', href: '/admin/categories', icon: Grid3X3 },
     { name: 'Products', href: '/admin/products', icon: UtensilsCrossed },
     { name: 'Reviews', href: '/admin/reviews', icon: Star },
@@ -43,6 +46,7 @@ export default function AdminLayout({
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [loggingOut, setLoggingOut] = useState(false);
+    const { showToast } = useToast();
 
     // Check if current path is a public path
     const isPublicPath = publicPaths.some(path => pathname.startsWith(path));
@@ -74,6 +78,34 @@ export default function AdminLayout({
 
         checkAuth();
     }, [pathname, router, isPublicPath]);
+
+    // Listen for new orders via SSE and show toast to admin
+    useEffect(() => {
+        if (!isAuthenticated || isPublicPath) return;
+
+        const eventSource = new EventSource('/api/admin/orders/stream');
+
+        const onOrderCreated = (event: MessageEvent) => {
+            try {
+                const data = JSON.parse(event.data);
+                const amount = typeof data.totalAmount === 'number' ? data.totalAmount.toLocaleString() : '0';
+                showToast(`New order ${data.orderNumber || ''} - LKR ${amount}`, 'info');
+            } catch (error) {
+                console.error('Failed to parse order event', error);
+            }
+        };
+
+        eventSource.addEventListener('order_created', onOrderCreated);
+
+        eventSource.onerror = () => {
+            eventSource.close();
+        };
+
+        return () => {
+            eventSource.removeEventListener('order_created', onOrderCreated);
+            eventSource.close();
+        };
+    }, [isAuthenticated, isPublicPath, showToast]);
 
     async function handleLogout() {
         setLoggingOut(true);

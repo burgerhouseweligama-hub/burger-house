@@ -31,7 +31,7 @@ export default function JsonLd() {
             }
         ],
         "servesCuisine": ["American", "Fast Food", "Burgers"],
-        "priceRange": "$$",
+        "priceRange": "LKR",
         "paymentAccepted": "Cash",
         "currenciesAccepted": "LKR",
         "menu": `${process.env.NEXT_PUBLIC_APP_URL || "https://whimsical-kelpie-80e090.netlify.app"}/menu`,
