@@ -97,7 +97,7 @@ export default function HeroSection() {
         }
     }, []);
 
-    // Handle scroll (raf-throttled for mobile)
+    // Handle scroll (raf-throttled for mobile/tablet) using page scrollY for consistency
     useEffect(() => {
         let ticking = false;
 
@@ -106,13 +106,18 @@ export default function HeroSection() {
             if (!containerRef.current || !imagesLoaded) return;
 
             const container = containerRef.current;
-            const rect = container.getBoundingClientRect();
             const viewportHeight = window.innerHeight;
+            const rect = container.getBoundingClientRect();
 
-            const scrollDist = -rect.top;
-            const scrollHeight = Math.max(rect.height - viewportHeight, 1); // avoid divide-by-zero on small screens
+            // Use document-level offsets to be robust across mobile browsers
+            const containerTop = container.offsetTop;
+            const containerHeight = Math.max(container.offsetHeight, viewportHeight);
+            const start = containerTop;
+            const end = containerTop + containerHeight - viewportHeight;
+            const scrollY = window.scrollY || window.pageYOffset || 0;
 
-            const scrollProgress = Math.max(0, Math.min(1, scrollDist / scrollHeight));
+            const rawProgress = (scrollY - start) / Math.max(end - start, 1);
+            const scrollProgress = Math.max(0, Math.min(1, rawProgress));
             setProgress(scrollProgress);
 
             const frameIndex = Math.floor(scrollProgress * (TOTAL_FRAMES - 1));
@@ -150,7 +155,7 @@ export default function HeroSection() {
             id="home"
             ref={containerRef}
             className="relative bg-black"
-            style={{ height: "400vh", minHeight: "200vh" }} // Ensure enough scroll on mobile
+            style={{ height: "450vh", minHeight: "260vh" }} // Ensure enough scroll distance on mobile/tablet
         >
             <div className="sticky top-0 h-[100dvh] overflow-hidden flex items-center justify-center">
                 {/* Background Frame Sequence */}
