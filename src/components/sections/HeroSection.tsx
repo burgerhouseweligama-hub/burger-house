@@ -97,37 +97,39 @@ export default function HeroSection() {
         }
     }, []);
 
-    // Handle scroll
+    // Handle scroll (raf-throttled for mobile)
     useEffect(() => {
-        const handleScroll = () => {
+        let ticking = false;
+
+        const update = () => {
+            ticking = false;
             if (!containerRef.current || !imagesLoaded) return;
 
             const container = containerRef.current;
             const rect = container.getBoundingClientRect();
             const viewportHeight = window.innerHeight;
 
-            // Calculate scroll progress through the container
-            // We want the animation to play over the course of the container's height
-            // minus one viewport height (because it sticks)
             const scrollDist = -rect.top;
-            const scrollHeight = rect.height - viewportHeight;
+            const scrollHeight = Math.max(rect.height - viewportHeight, 1); // avoid divide-by-zero on small screens
 
-            let scrollProgress = Math.max(0, Math.min(1, scrollDist / scrollHeight));
-
-            // Update progress state
+            const scrollProgress = Math.max(0, Math.min(1, scrollDist / scrollHeight));
             setProgress(scrollProgress);
 
-            // Calculate current frame
             const frameIndex = Math.floor(scrollProgress * (TOTAL_FRAMES - 1));
-
-            // Draw
             requestAnimationFrame(() => drawFrame(frameIndex));
         };
 
-        window.addEventListener("scroll", handleScroll);
-        window.addEventListener("resize", handleScroll);
+        const handleScroll = () => {
+            if (!ticking) {
+                ticking = true;
+                requestAnimationFrame(update);
+            }
+        };
 
-        // Initial call
+        window.addEventListener("scroll", handleScroll, { passive: true });
+        window.addEventListener("resize", handleScroll, { passive: true });
+
+        // Initial draw
         handleScroll();
 
         return () => {
@@ -148,7 +150,7 @@ export default function HeroSection() {
             id="home"
             ref={containerRef}
             className="relative bg-black"
-            style={{ height: "400vh" }} // Determines animation duration relative to scroll
+            style={{ height: "400vh", minHeight: "200vh" }} // Ensure enough scroll on mobile
         >
             <div className="sticky top-0 h-[100dvh] overflow-hidden flex items-center justify-center">
                 {/* Background Frame Sequence */}
