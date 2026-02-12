@@ -91,54 +91,66 @@ export default function AdminLayout({
         checkAuth();
     }, [pathname, router, isPublicPath]);
 
-    // Listen for new orders via SSE and show toast to admin
+    // Track the last order time to detect new ones
+    const lastCheckedRef = React.useRef<number>(Date.now());
+
+    // Poll for new orders every 15 seconds
     useEffect(() => {
         if (!isAuthenticated || isPublicPath) return;
 
-        const eventSource = new EventSource('/api/admin/orders/stream');
-
-        const onOrderCreated = (event: MessageEvent) => {
+        const checkForNewOrders = async () => {
             try {
-                const data = JSON.parse(event.data);
-                const amount = typeof data.totalAmount === 'number' ? data.totalAmount.toLocaleString() : '0';
-                const itemsText = Array.isArray(data.items)
-                    ? data.items.map((item: any) => `${item.name || 'Item'} x ${item.quantity || 1}`).join(', ')
-                    : '';
-                const customer = data.customerName ? ` • ${data.customerName}` : '';
+                const res = await fetch('/api/admin/orders?limit=1');
+                if (!res.ok) return;
 
-                showToast(
-                    `New order ${data.orderNumber || ''} - LKR ${amount}${itemsText ? ` • ${itemsText}` : ''}${customer}`,
-                    'info'
-                );
+                const data = await res.json();
+                const orders = data.orders || [];
+                if (!Array.isArray(orders) || orders.length === 0) return;
 
-                const notificationId = `${data.orderId || data.orderNumber || Date.now()}`;
-                setNotifications(prev => [
-                    {
-                        id: notificationId,
-                        orderId: data.orderId,
-                        orderNumber: data.orderNumber,
-                        totalAmount: data.totalAmount || 0,
-                        itemsText: itemsText || 'New items',
-                        createdAt: data.createdAt || new Date().toISOString(),
-                        read: false,
-                    },
-                    ...prev,
-                ]);
+                const latestOrder = orders[0];
+                const orderTime = new Date(latestOrder.createdAt).getTime();
+
+                // If this order is newer than our last check
+                if (orderTime > lastCheckedRef.current) {
+                    // Update reference first to avoid duplicate alerts
+                    lastCheckedRef.current = orderTime;
+
+                    const amount = typeof latestOrder.totalAmount === 'number' ? latestOrder.totalAmount.toLocaleString() : '0';
+                    const itemsText = Array.isArray(latestOrder.items)
+                        ? latestOrder.items.map((item: any) => `${item.name || 'Item'} x ${item.quantity || 1}`).join(', ')
+                        : '';
+                    const customer = latestOrder.deliveryDetails?.fullName ? ` • ${latestOrder.deliveryDetails.fullName}` : '';
+
+                    showToast(
+                        `New order ${latestOrder.orderNumber || ''} - LKR ${amount}${itemsText ? ` • ${itemsText}` : ''}${customer}`,
+                        'info'
+                    );
+
+                    const notificationId = `${latestOrder._id || Date.now()}`;
+                    setNotifications(prev => {
+                        // Avoid duplicates in state
+                        if (prev.some(n => n.id === notificationId)) return prev;
+                        return [
+                            {
+                                id: notificationId,
+                                orderId: latestOrder._id,
+                                orderNumber: latestOrder.orderNumber,
+                                totalAmount: latestOrder.totalAmount || 0,
+                                itemsText: itemsText || 'New items',
+                                createdAt: latestOrder.createdAt || new Date().toISOString(),
+                                read: false,
+                            },
+                            ...prev,
+                        ];
+                    });
+                }
             } catch (error) {
-                console.error('Failed to parse order event', error);
+                console.error('Failed to poll for orders', error);
             }
         };
 
-        eventSource.addEventListener('order_created', onOrderCreated);
-
-        eventSource.onerror = () => {
-            eventSource.close();
-        };
-
-        return () => {
-            eventSource.removeEventListener('order_created', onOrderCreated);
-            eventSource.close();
-        };
+        const interval = setInterval(checkForNewOrders, 15000);
+        return () => clearInterval(interval);
     }, [isAuthenticated, isPublicPath, showToast]);
 
     const unreadCount = notifications.filter(n => !n.read).length;

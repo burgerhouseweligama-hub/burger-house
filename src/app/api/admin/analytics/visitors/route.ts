@@ -13,13 +13,19 @@ function getDateKey(date: Date) {
 }
 
 export async function GET() {
+    console.log('[API] /api/admin/analytics/visitors called');
     const auth = await verifyAuth();
+    console.log('[API] Auth result:', auth);
+
     if (!auth || auth.role !== 'admin') {
+        console.warn('[API] Unauthorized access attempt');
         return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
     try {
+        console.log('[API] Connecting to DB...');
         await connectDB();
+        console.log('[API] DB connected. Fetching visitors...');
         const days = 14;
         const today = new Date();
         today.setHours(0, 0, 0, 0);

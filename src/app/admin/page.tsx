@@ -72,7 +72,7 @@ export default function AdminDashboard() {
                 usersRes.json(),
             ]);
 
-            const ordersArray = Array.isArray(orders) ? orders : [];
+            const ordersArray = Array.isArray(orders) ? orders : (orders.orders || []);
             const todayStart = new Date();
             todayStart.setHours(0, 0, 0, 0);
 
@@ -108,7 +108,12 @@ export default function AdminDashboard() {
             try {
                 setVisitorLoading(true);
                 const res = await fetch('/api/admin/analytics/visitors');
-                if (!res.ok) throw new Error('Failed to load visitors');
+                if (!res.ok) {
+                    console.error('Visitor fetch error:', res.status, res.statusText);
+                    const text = await res.text();
+                    console.error('Visitor response body:', text);
+                    throw new Error(`Failed to load visitors: ${res.status} ${res.statusText}`);
+                }
                 const data = await res.json();
                 setVisitorData(data);
             } catch (error) {
@@ -136,22 +141,13 @@ export default function AdminDashboard() {
 
     const safeNumber = (value: number | undefined | null) => Number.isFinite(value) ? Number(value) : 0;
 
-    // Listen for real-time order events to refresh stats instantly
+    // Poll for order updates every 15 seconds
     useEffect(() => {
-        const eventSource = new EventSource('/api/admin/orders/stream');
-
-        const handleOrderCreated = () => {
-            // refresh stats silently (loading spinner minimal)
+        const interval = setInterval(() => {
             fetchStats();
-        };
+        }, 15000);
 
-        eventSource.addEventListener('order_created', handleOrderCreated);
-        eventSource.onerror = () => eventSource.close();
-
-        return () => {
-            eventSource.removeEventListener('order_created', handleOrderCreated);
-            eventSource.close();
-        };
+        return () => clearInterval(interval);
     }, [fetchStats]);
 
     const dashboardCards = [

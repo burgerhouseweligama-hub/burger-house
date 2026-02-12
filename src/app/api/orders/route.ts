@@ -5,7 +5,7 @@ import User from '@/models/User';
 import connectToDatabase from '@/lib/db';
 import { cookies } from 'next/headers';
 import jwt from 'jsonwebtoken';
-import { broadcastEvent } from '@/lib/realtime';
+
 
 // Helper to get user ID from token
 async function getUserId() {
@@ -149,16 +149,7 @@ export async function POST(req: NextRequest) {
         await cart.save();
 
         // Notify admin listeners about the new order
-        broadcastEvent('order_created', {
-            orderId: order._id,
-            orderNumber: order.orderNumber,
-            totalAmount: order.totalAmount,
-            status: order.status,
-            createdAt: order.createdAt,
-            customerName: fullName.trim(),
-            phone: phone.replace(/\s/g, ''),
-            items: orderItems.map((item: any) => ({ name: item.name, quantity: item.quantity })),
-        });
+
 
         return NextResponse.json(
             {
