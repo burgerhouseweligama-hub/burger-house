@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Resend } from 'resend';
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import nodemailer from 'nodemailer';
 
 export async function POST(request: NextRequest) {
     try {
@@ -16,10 +14,25 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Send email using Resend
-        const { data, error } = await resend.emails.send({
-            from: 'Burger House <onboarding@resend.dev>',
-            to: ['burgerhouseweligama@gmail.com'],
+        if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+            return NextResponse.json(
+                { error: 'Email service not configured' },
+                { status: 500 }
+            );
+        }
+
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.GMAIL_USER,
+                pass: process.env.GMAIL_APP_PASSWORD,
+            },
+        });
+
+        // Send email using Nodemailer
+        const info = await transporter.sendMail({
+            from: `"Burger House Contact" <${process.env.GMAIL_USER}>`,
+            to: 'burgerhouseweligama@gmail.com',
             subject: `Contact Form: ${subject}`,
             html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -44,16 +57,10 @@ export async function POST(request: NextRequest) {
             replyTo: email,
         });
 
-        if (error) {
-            console.error('Resend error:', error);
-            return NextResponse.json(
-                { error: 'Failed to send email' },
-                { status: 500 }
-            );
-        }
+
 
         return NextResponse.json(
-            { success: true, message: 'Email sent successfully', id: data?.id },
+            { success: true, message: 'Email sent successfully', id: info.messageId },
             { status: 200 }
         );
     } catch (error) {

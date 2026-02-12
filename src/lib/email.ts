@@ -245,34 +245,36 @@ const generateEmailHTML = (order: Order, status: OrderStatus): string => {
     `;
 };
 
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 
 // Send order status email
 export async function sendOrderStatusEmail(order: Order, status: OrderStatus): Promise<boolean> {
     try {
-        // Check if Resend API key is configured
-        if (!process.env.RESEND_API_KEY) {
-            console.warn('Resend API Key not configured. Skipping email notification.');
+        // Check if Gmail credentials are configured
+        if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+            console.warn('Gmail credentials not configured. Skipping email notification.');
             return false;
         }
 
-        const resend = new Resend(process.env.RESEND_API_KEY);
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.GMAIL_USER,
+                pass: process.env.GMAIL_APP_PASSWORD,
+            },
+        });
+
         const statusInfo = statusMessages[status];
         const html = generateEmailHTML(order, status);
 
-        const { data, error } = await resend.emails.send({
-            from: 'Burger House <onboarding@resend.dev>',
+        const info = await transporter.sendMail({
+            from: `"Burger House" <${process.env.GMAIL_USER}>`,
             to: order.email,
             subject: statusInfo.subject,
             html: html,
         });
 
-        if (error) {
-            console.error('Error sending email via Resend:', error);
-            return false;
-        }
-
-        console.log(`Order status email sent to ${order.email} for order ${order.orderNumber}. ID: ${data?.id}`);
+        console.log(`Order status email sent to ${order.email} for order ${order.orderNumber}. MessageId: ${info.messageId}`);
         return true;
     } catch (error) {
         console.error('Failed to send order status email:', error);

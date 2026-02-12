@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import User from '@/models/User';
 import { generateResetToken } from '@/lib/auth';
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 
 export async function POST(request: NextRequest) {
     try {
@@ -42,15 +42,19 @@ export async function POST(request: NextRequest) {
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
         const resetUrl = `${baseUrl}/admin/reset-password?token=${resetToken}`;
 
-        // Check if Resend API key is configured
-        const resendApiKey = process.env.RESEND_API_KEY;
+        // Check if Gmail credentials are configured
+        if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
+            // Send email using Nodemailer
+            const transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                    user: process.env.GMAIL_USER,
+                    pass: process.env.GMAIL_APP_PASSWORD,
+                },
+            });
 
-        if (resendApiKey) {
-            // Send email using Resend
-            const resend = new Resend(resendApiKey);
-
-            await resend.emails.send({
-                from: 'Burger House <onboarding@resend.dev>',
+            await transporter.sendMail({
+                from: `"Burger House" <${process.env.GMAIL_USER}>`,
                 to: user.email,
                 subject: 'Password Reset - Burger House Admin',
                 html: `
@@ -73,9 +77,9 @@ export async function POST(request: NextRequest) {
 
             console.log('Password reset email sent to:', user.email);
         } else {
-            // Resend not configured - log the reset URL for development
+            // Gmail not configured - log the reset URL for development
             console.log('======================================');
-            console.log('RESEND_API_KEY not configured. Reset URL:');
+            console.log('GMAIL_USER/GMAIL_APP_PASSWORD not configured. Reset URL:');
             console.log(resetUrl);
             console.log('======================================');
         }
