@@ -128,9 +128,18 @@ export async function PUT(
         }
 
         // Send email notification to customer (fire-and-forget)
-        sendOrderStatusEmail(order as any, status).catch((err) => {
-            console.error('Failed to send status email:', err);
-        });
+        console.log(`Attempting to send email for order ${id} with status ${status}`);
+        sendOrderStatusEmail(order as any, status)
+            .then((success) => {
+                if (success) {
+                    console.log(`Email sent successfully for order ${id}`);
+                } else {
+                    console.warn(`Email sending returned false for order ${id} (likely configuration issue)`);
+                }
+            })
+            .catch((err) => {
+                console.error(`Failed to send status email for order ${id}:`, err);
+            });
 
         return NextResponse.json(
             {
