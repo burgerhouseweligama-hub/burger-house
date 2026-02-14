@@ -192,6 +192,8 @@ export default function ReviewSection() {
                                                     alt={review.reviewerName}
                                                     fill
                                                     className="object-cover"
+                                                    loading="lazy"
+                                                    sizes="56px"
                                                 />
                                             </div>
                                         ) : (
@@ -241,6 +243,8 @@ export default function ReviewSection() {
                                                         alt={`Review image ${idx}`}
                                                         fill
                                                         className="object-cover"
+                                                        loading="lazy"
+                                                        sizes="64px"
                                                     />
                                                 </div>
                                             ))}
@@ -285,6 +289,8 @@ export default function ReviewSection() {
                                     alt={`Review image ${idx}`}
                                     fill
                                     className="object-cover"
+                                    sizes="320px"
+                                    quality={85}
                                 />
                             </div>
                         ))}

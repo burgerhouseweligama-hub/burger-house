@@ -60,6 +60,9 @@ export default function SpecialsSection() {
                                 alt="Combo Meal"
                                 fill
                                 className="object-contain drop-shadow-[0_0_60px_rgba(249,115,22,0.4)]"
+                                loading="lazy"
+                                sizes="(max-width: 1024px) 90vw, 450px"
+                                quality={80}
                             />
                         </div>
                     </div>

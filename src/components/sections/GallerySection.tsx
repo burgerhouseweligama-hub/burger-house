@@ -5,6 +5,10 @@ import Image from "next/image";
 import { ZoomIn, X, Instagram } from "lucide-react";
 
 // Gallery Images (Placeholders)
+// Tiny 16px base64 blur placeholder for Unsplash images
+const BLUR_PLACEHOLDER =
+    "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAQABADASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAn/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCwAB//2Q==";
+
 const galleryImages = [
     {
         id: 1,
@@ -102,6 +106,11 @@ export default function GallerySection() {
                                 alt={image.alt}
                                 fill
                                 className="object-cover transition-transform duration-700 group-hover:scale-110"
+                                loading="lazy"
+                                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                                placeholder="blur"
+                                blurDataURL={BLUR_PLACEHOLDER}
+                                quality={75}
                             />
                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                                 <div className="text-center transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
@@ -138,6 +147,8 @@ export default function GallerySection() {
                                 fill
                                 className="object-contain"
                                 priority
+                                sizes="(max-width: 1280px) 100vw, 1280px"
+                                quality={85}
                             />
                         </div>
                         <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black to-transparent">

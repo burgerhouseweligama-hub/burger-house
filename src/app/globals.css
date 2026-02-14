@@ -473,6 +473,19 @@
   animation: scroll-down 1.5s ease-in-out infinite;
 }
 
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
 /* Animation delays */
 .delay-500 {
   animation-delay: 0.5s;

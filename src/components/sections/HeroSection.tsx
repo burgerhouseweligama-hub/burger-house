@@ -3,21 +3,13 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 import { ArrowRight, Flame } from "lucide-react";
 import Link from "next/link";
-
-// Total number of frames in the sequence (0-191)
-const TOTAL_FRAMES = 192;
-
-// Generate frame paths
-const getFramePath = (index: number): string => {
-    const paddedIndex = index.toString().padStart(3, "0");
-    const delay = index % 3 === 1 ? "0.041s" : "0.042s";
-    return `/burgerzip/frame_${paddedIndex}_delay-${delay}.jpg`;
-};
+import { getHeroFrames, areFramesCached, TOTAL_FRAMES } from "@/lib/heroFrameCache";
 
 export default function HeroSection() {
     const containerRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [imagesLoaded, setImagesLoaded] = useState(false);
+    const [imagesLoaded, setImagesLoaded] = useState(() => areFramesCached());
+    const [loadProgress, setLoadProgress] = useState(() => areFramesCached() ? 100 : 0);
     const [progress, setProgress] = useState(0);
     const imagesRef = useRef<HTMLImageElement[]>([]);
     const [particles, setParticles] = useState<
@@ -35,37 +27,6 @@ export default function HeroSection() {
         setParticles(newParticles);
     }, []);
 
-    // Preload images
-    useEffect(() => {
-        const images: HTMLImageElement[] = [];
-        let loadedCount = 0;
-
-        const handleImageLoad = () => {
-            loadedCount++;
-            if (loadedCount === TOTAL_FRAMES) {
-                imagesRef.current = images;
-                setImagesLoaded(true);
-                // Initial draw
-                drawFrame(0);
-            }
-        };
-
-        for (let i = 0; i < TOTAL_FRAMES; i++) {
-            const img = new window.Image();
-            img.src = getFramePath(i);
-            img.onload = handleImageLoad;
-            img.onerror = handleImageLoad;
-            images[i] = img;
-        }
-
-        return () => {
-            images.forEach((img) => {
-                img.onload = null;
-                img.onerror = null;
-            });
-        };
-    }, []);
-
     const drawFrame = useCallback((frameIndex: number) => {
         const canvas = canvasRef.current;
         const ctx = canvas?.getContext("2d");
@@ -74,7 +35,6 @@ export default function HeroSection() {
         if (canvas && ctx && img) {
             const container = canvas.parentElement;
             if (container) {
-                // Ensure canvas resolution matches display size
                 const dpr = window.devicePixelRatio || 1;
                 const rect = container.getBoundingClientRect();
 
@@ -83,7 +43,6 @@ export default function HeroSection() {
 
                 ctx.scale(dpr, dpr);
 
-                // Calculate cover-like scaling
                 const scale = Math.max(
                     rect.width / img.width,
                     rect.height / img.height
@@ -97,7 +56,28 @@ export default function HeroSection() {
         }
     }, []);
 
-    // Handle scroll (raf-throttled for mobile/tablet) using page scrollY for consistency
+    // Load frames from the singleton cache
+    useEffect(() => {
+        let cancelled = false;
+
+        getHeroFrames((loaded, total) => {
+            if (!cancelled) {
+                setLoadProgress(Math.round((loaded / total) * 100));
+            }
+        }).then((frames) => {
+            if (!cancelled) {
+                imagesRef.current = frames;
+                setImagesLoaded(true);
+                drawFrame(0);
+            }
+        });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [drawFrame]);
+
+    // Handle scroll
     useEffect(() => {
         let ticking = false;
 
@@ -107,9 +87,7 @@ export default function HeroSection() {
 
             const container = containerRef.current;
             const viewportHeight = window.innerHeight;
-            const rect = container.getBoundingClientRect();
 
-            // Use document-level offsets to be robust across mobile browsers
             const containerTop = container.offsetTop;
             const containerHeight = Math.max(container.offsetHeight, viewportHeight);
             const start = containerTop;
@@ -134,7 +112,6 @@ export default function HeroSection() {
         window.addEventListener("scroll", handleScroll, { passive: true });
         window.addEventListener("resize", handleScroll, { passive: true });
 
-        // Initial draw
         handleScroll();
 
         return () => {
@@ -155,7 +132,7 @@ export default function HeroSection() {
             id="home"
             ref={containerRef}
             className="relative bg-black"
-            style={{ height: "450vh", minHeight: "260vh" }} // Ensure enough scroll distance on mobile/tablet
+            style={{ height: "450vh", minHeight: "260vh" }}
         >
             <div className="sticky top-0 h-[100dvh] overflow-hidden flex items-center justify-center">
                 {/* Background Frame Sequence */}
@@ -169,7 +146,16 @@ export default function HeroSection() {
                         <div className="absolute inset-0 bg-black flex items-center justify-center">
                             <div className="flex flex-col items-center gap-4">
                                 <Flame className="w-8 h-8 text-orange-500 animate-bounce" />
-                                <div className="text-orange-400 font-medium animate-pulse">Loading Experience...</div>
+                                <div className="text-orange-400 font-medium">
+                                    Loading Experience... {loadProgress}%
+                                </div>
+                                {/* Progress bar */}
+                                <div className="w-48 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-gradient-to-r from-orange-500 to-red-500 rounded-full transition-all duration-300 ease-out"
+                                        style={{ width: `${loadProgress}%` }}
+                                    />
+                                </div>
                             </div>
                         </div>
                     )}

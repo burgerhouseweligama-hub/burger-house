@@ -14,7 +14,7 @@ export default function Home() {
       <Navbar />
       <HeroSection />
       <AboutSection />
-      <MenuSection />
+      <MenuSection showViewAllButton={true} />
       <SpecialsSection />
       <ReviewSection />
       <GallerySection />

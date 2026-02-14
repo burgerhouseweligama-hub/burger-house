@@ -75,6 +75,8 @@ export default function AboutSection() {
                                         alt="Our Special Combo"
                                         fill
                                         className="object-cover"
+                                        loading="lazy"
+                                        sizes="(max-width: 1024px) 90vw, 450px"
                                     />
                                 </div>
 

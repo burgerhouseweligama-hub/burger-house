@@ -33,7 +33,11 @@ interface ProductsResponse {
 
 const ITEMS_PER_PAGE = 12;
 
-export default function MenuSection() {
+interface MenuSectionProps {
+    showViewAllButton?: boolean;
+}
+
+export default function MenuSection({ showViewAllButton = true }: MenuSectionProps) {
     const [products, setProducts] = useState<Product[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -274,7 +278,7 @@ export default function MenuSection() {
                 )}
 
                 {/* View All Link (for homepage use) */}
-                {!loading && !error && products.length > 0 && (
+                {showViewAllButton && !loading && !error && products.length > 0 && (
                     <div className="text-center mt-16">
                         <Link
                             href="/menu"
