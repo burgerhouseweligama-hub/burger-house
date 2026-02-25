@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { Plus, Trash2, Loader2, Grid3X3 } from 'lucide-react';
+import { Plus, Trash2, Loader2, Grid3X3, Edit } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,6 +45,7 @@ export default function CategoriesPage() {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [imageUrl, setImageUrl] = useState('');
     const [error, setError] = useState<string | null>(null);
+    const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
     const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>();
 
@@ -69,8 +70,10 @@ export default function CategoriesPage() {
         setError(null);
 
         try {
-            const res = await fetch('/api/categories', {
-                method: 'POST',
+            const url = editingCategory ? `/api/categories/${editingCategory._id}` : '/api/categories';
+            const method = editingCategory ? 'PUT' : 'POST';
+            const res = await fetch(url, {
+                method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     name: data.name,
@@ -80,17 +83,28 @@ export default function CategoriesPage() {
 
             if (!res.ok) {
                 const errorData = await res.json();
-                throw new Error(errorData.error || 'Failed to create category');
+                throw new Error(errorData.error || `Failed to ${editingCategory ? 'update' : 'create'} category`);
             }
 
             await fetchCategories();
-            reset();
+            reset({ name: '' });
             setImageUrl('');
+            setEditingCategory(null);
             setDialogOpen(false);
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to create category');
+            setError(err instanceof Error ? err.message : `Failed to ${editingCategory ? 'update' : 'create'} category`);
         } finally {
             setSaving(false);
+        }
+    }
+
+    function handleDialogOpenChange(open: boolean) {
+        setDialogOpen(open);
+        if (!open) {
+            setEditingCategory(null);
+            reset({ name: '' });
+            setImageUrl('');
+            setError(null);
         }
     }
 
@@ -124,7 +138,7 @@ export default function CategoriesPage() {
                     <p className="text-sm sm:text-base text-zinc-400">Manage your menu categories</p>
                 </div>
 
-                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
                     <DialogTrigger asChild>
                         <Button className="bg-orange-500 hover:bg-orange-600 w-full sm:w-auto text-sm sm:text-base">
                             <Plus className="h-4 w-4 mr-2" />
@@ -133,7 +147,7 @@ export default function CategoriesPage() {
                     </DialogTrigger>
                     <DialogContent className="bg-zinc-900 border-zinc-800 text-white mx-4 sm:mx-auto max-w-md">
                         <DialogHeader>
-                            <DialogTitle>Create New Category</DialogTitle>
+                            <DialogTitle>{editingCategory ? 'Edit Category' : 'Create New Category'}</DialogTitle>
                         </DialogHeader>
                         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                             <div className="space-y-2">
@@ -173,7 +187,7 @@ export default function CategoriesPage() {
                                     className="bg-orange-500 hover:bg-orange-600 w-full sm:w-auto"
                                 >
                                     {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                                    Create Category
+                                    {editingCategory ? 'Update Category' : 'Create Category'}
                                 </Button>
                             </div>
                         </form>
@@ -230,69 +244,25 @@ export default function CategoriesPage() {
                                                 <p className="text-white font-medium truncate">{category.name}</p>
                                                 <p className="text-zinc-500 text-xs truncate">{category.slug}</p>
                                             </div>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-8 w-8 text-red-500 hover:text-red-400 hover:bg-red-500/10 flex-shrink-0"
-                                                onClick={() => deleteCategory(category._id)}
-                                                disabled={deleting === category._id}
-                                            >
-                                                {deleting === category._id ? (
-                                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                                ) : (
-                                                    <Trash2 className="h-4 w-4" />
-                                                )}
-                                            </Button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* Desktop Table View */}
-                            <div className="hidden lg:block overflow-x-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow className="border-zinc-800 hover:bg-transparent">
-                                        <TableHead className="text-zinc-400">Image</TableHead>
-                                        <TableHead className="text-zinc-400">Name</TableHead>
-                                        <TableHead className="text-zinc-400">Slug</TableHead>
-                                        <TableHead className="text-zinc-400 text-right">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {categories.map((category) => (
-                                        <TableRow
-                                            key={category._id}
-                                            className="border-zinc-800 hover:bg-zinc-800/50"
-                                        >
-                                            <TableCell>
-                                                <div className="w-12 h-12 rounded-lg overflow-hidden bg-zinc-800">
-                                                    {category.image ? (
-                                                        <Image
-                                                            src={category.image}
-                                                            alt={category.name}
-                                                            width={48}
-                                                            height={48}
-                                                            className="object-cover w-full h-full"
-                                                        />
-                                                    ) : (
-                                                        <div className="w-full h-full flex items-center justify-center">
-                                                            <Grid3X3 className="h-5 w-5 text-zinc-600" />
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="text-white font-medium">
-                                                {category.name}
-                                            </TableCell>
-                                            <TableCell className="text-zinc-400">
-                                                {category.slug}
-                                            </TableCell>
-                                            <TableCell className="text-right">
+                                            <div className="flex items-center gap-1">
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    className="text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                                                    className="h-8 w-8 text-blue-500 hover:text-blue-400 hover:bg-blue-500/10 flex-shrink-0"
+                                                    onClick={() => {
+                                                        setEditingCategory(category);
+                                                        reset({ name: category.name });
+                                                        setImageUrl(category.image || '');
+                                                        setDialogOpen(true);
+                                                    }}
+                                                    disabled={deleting === category._id}
+                                                >
+                                                    <Edit className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 text-red-500 hover:text-red-400 hover:bg-red-500/10 flex-shrink-0"
                                                     onClick={() => deleteCategory(category._id)}
                                                     disabled={deleting === category._id}
                                                 >
@@ -302,12 +272,88 @@ export default function CategoriesPage() {
                                                         <Trash2 className="h-4 w-4" />
                                                     )}
                                                 </Button>
-                                            </TableCell>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Desktop Table View */}
+                            <div className="hidden lg:block overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow className="border-zinc-800 hover:bg-transparent">
+                                            <TableHead className="text-zinc-400">Image</TableHead>
+                                            <TableHead className="text-zinc-400">Name</TableHead>
+                                            <TableHead className="text-zinc-400">Slug</TableHead>
+                                            <TableHead className="text-zinc-400 text-right">Actions</TableHead>
                                         </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {categories.map((category) => (
+                                            <TableRow
+                                                key={category._id}
+                                                className="border-zinc-800 hover:bg-zinc-800/50"
+                                            >
+                                                <TableCell>
+                                                    <div className="w-12 h-12 rounded-lg overflow-hidden bg-zinc-800">
+                                                        {category.image ? (
+                                                            <Image
+                                                                src={category.image}
+                                                                alt={category.name}
+                                                                width={48}
+                                                                height={48}
+                                                                className="object-cover w-full h-full"
+                                                            />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center">
+                                                                <Grid3X3 className="h-5 w-5 text-zinc-600" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-white font-medium">
+                                                    {category.name}
+                                                </TableCell>
+                                                <TableCell className="text-zinc-400">
+                                                    {category.slug}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="text-blue-500 hover:text-blue-400 hover:bg-blue-500/10"
+                                                            onClick={() => {
+                                                                setEditingCategory(category);
+                                                                reset({ name: category.name });
+                                                                setImageUrl(category.image || '');
+                                                                setDialogOpen(true);
+                                                            }}
+                                                            disabled={deleting === category._id}
+                                                        >
+                                                            <Edit className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                                                            onClick={() => deleteCategory(category._id)}
+                                                            disabled={deleting === category._id}
+                                                        >
+                                                            {deleting === category._id ? (
+                                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                            ) : (
+                                                                <Trash2 className="h-4 w-4" />
+                                                            )}
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
                         </>
                     )}
                 </CardContent>
