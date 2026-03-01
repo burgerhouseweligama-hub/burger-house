@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { UtensilsCrossed, Loader2, Plus, Eye } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
 import { useToast } from '@/context/ToastContext';
 
@@ -29,6 +30,7 @@ interface MobileProductCardProps {
 export function MobileProductCard({ product }: MobileProductCardProps) {
     const { addToCart } = useCart();
     const { showToast } = useToast();
+    const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
     const [imageLoaded, setImageLoaded] = useState(false);
 
@@ -47,13 +49,23 @@ export function MobileProductCard({ product }: MobileProductCardProps) {
         }
     };
 
+    const handleCardClick = () => {
+        // Navigate to product details on mobile
+        if (window.innerWidth < 640) {
+            router.push(`/menu/${product._id}`);
+        }
+    };
+
     return (
         <div className="group relative h-full">
             {/* Desktop glow effect */}
             <div className="absolute -inset-0.5 bg-gradient-to-r from-orange-500 to-red-600 rounded-2xl opacity-0 group-hover:opacity-15 blur-xl transition-opacity duration-500 hidden sm:block" />
 
             {/* Card Container */}
-            <div className="relative h-full bg-zinc-900/80 border border-zinc-800 rounded-2xl overflow-hidden hover:border-orange-500/30 transition-all duration-300 active:scale-[0.96] sm:active:scale-100">
+            <div
+                onClick={handleCardClick}
+                className="relative h-full bg-zinc-900/80 border border-zinc-800 rounded-2xl overflow-hidden hover:border-orange-500/30 transition-all duration-300 active:scale-[0.96] sm:active:scale-100 cursor-pointer sm:cursor-default"
+            >
                 {/* Mobile: Horizontal layout | Desktop: Vertical layout */}
                 <div className="flex flex-row sm:flex-col">
                     {/* Image Container */}

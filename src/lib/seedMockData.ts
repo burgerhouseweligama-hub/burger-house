@@ -144,11 +144,23 @@ export async function seedMockData(): Promise<void> {
                 ...category,
                 slug: category.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
             }));
-            const createdCategories = await Category.insertMany(categoriesWithSlugs);
-            console.log(`✅ Seeded ${createdCategories.length} categories`);
 
-            // Map category names to their new MongoDB ObjectIds
-            const categoryMap = new Map(createdCategories.map(c => [c.name, c._id]));
+            // Upsert categories to avoid duplicate key errors on re-runs
+            const bulkOps = categoriesWithSlugs.map(cat => ({
+                updateOne: {
+                    filter: { slug: cat.slug },
+                    update: { $setOnInsert: cat },
+                    upsert: true
+                }
+            }));
+            await Category.bulkWrite(bulkOps);
+
+            // Fetch all categories (including previously existing ones)
+            const allCategories = await Category.find({ slug: { $in: categoriesWithSlugs.map(c => c.slug) } });
+            console.log(`✅ Seeded/verified ${allCategories.length} categories`);
+
+            // Map category names to their MongoDB ObjectIds
+            const categoryMap = new Map(allCategories.map(c => [c.name, c._id]));
 
             const productsToInsert = MENU_ITEMS.map(item => {
                 const categoryId = categoryMap.get(item.categoryName);
@@ -166,8 +178,15 @@ export async function seedMockData(): Promise<void> {
             }).filter(item => item.category); // Only keep items with valid categories
 
             console.log('Seeding Burger House menu items...');
-            await Product.insertMany(productsToInsert);
-            console.log(`✅ Seeded ${productsToInsert.length} menu items successfully!`);
+            const productBulkOps = productsToInsert.map(item => ({
+                updateOne: {
+                    filter: { name: item.name, category: item.category },
+                    update: { $setOnInsert: item },
+                    upsert: true
+                }
+            }));
+            await Product.bulkWrite(productBulkOps);
+            console.log(`✅ Seeded/verified ${productsToInsert.length} menu items successfully!`);
 
         } catch (error) {
             console.error('Error seeding mock data:', error);
