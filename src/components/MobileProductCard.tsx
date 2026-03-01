@@ -53,11 +53,11 @@ export function MobileProductCard({ product }: MobileProductCardProps) {
             <div className="absolute -inset-0.5 bg-gradient-to-r from-orange-500 to-red-600 rounded-2xl opacity-0 group-hover:opacity-15 blur-xl transition-opacity duration-500 hidden sm:block" />
 
             {/* Card Container */}
-            <div className="relative h-full bg-zinc-900/80 border border-zinc-800 rounded-2xl overflow-hidden hover:border-orange-500/30 transition-all duration-300 active:scale-[0.98] sm:active:scale-100">
+            <div className="relative h-full bg-zinc-900/80 border border-zinc-800 rounded-2xl overflow-hidden hover:border-orange-500/30 transition-all duration-300 active:scale-[0.96] sm:active:scale-100">
                 {/* Mobile: Horizontal layout | Desktop: Vertical layout */}
                 <div className="flex flex-row sm:flex-col">
                     {/* Image Container */}
-                    <div className="relative w-[120px] h-[120px] sm:w-full sm:h-auto sm:aspect-[4/3] flex-shrink-0 overflow-hidden bg-zinc-800">
+                    <div className="relative w-[104px] h-[104px] m-2 rounded-xl sm:w-full sm:h-auto sm:aspect-[4/3] sm:m-0 sm:rounded-none flex-shrink-0 overflow-hidden bg-zinc-800">
                         {/* Shimmer placeholder */}
                         {!imageLoaded && product.image && (
                             <div className="absolute inset-0 animate-shimmer bg-gradient-to-r from-zinc-800 via-zinc-700 to-zinc-800 bg-[length:200%_100%]" />
@@ -71,7 +71,7 @@ export function MobileProductCard({ product }: MobileProductCardProps) {
                                 loading="lazy"
                                 className={`object-cover transition-all duration-500 sm:group-hover:scale-105 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
                                 onLoad={() => setImageLoaded(true)}
-                                sizes="(max-width: 640px) 120px, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
+                                sizes="(max-width: 640px) 104px, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
                             />
                         ) : (
                             <div className="w-full h-full flex items-center justify-center">
@@ -100,7 +100,7 @@ export function MobileProductCard({ product }: MobileProductCardProps) {
                             </Link>
 
                             {product.description && (
-                                <p className="text-zinc-500 text-xs sm:text-sm line-clamp-2 mt-1 leading-relaxed">
+                                <p className="text-zinc-500 text-xs sm:text-sm line-clamp-1 sm:line-clamp-2 mt-1 leading-relaxed">
                                     {product.description}
                                 </p>
                             )}
@@ -126,14 +126,14 @@ export function MobileProductCard({ product }: MobileProductCardProps) {
                                     <button
                                         onClick={handleAddToCart}
                                         disabled={isLoading}
-                                        className="flex items-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-xl text-xs sm:text-sm font-semibold hover:shadow-lg hover:shadow-orange-500/25 active:scale-95 transition-all duration-200 disabled:opacity-70 min-h-[44px] touch-manipulation"
+                                        className="w-10 h-10 sm:w-auto sm:h-auto flex items-center justify-center sm:gap-1.5 sm:px-4 sm:py-2.5 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-full sm:rounded-xl text-xs sm:text-sm font-semibold hover:shadow-lg hover:shadow-orange-500/25 active:scale-90 transition-all duration-200 disabled:opacity-70 touch-manipulation"
                                     >
                                         {isLoading ? (
                                             <Loader2 className="w-4 h-4 animate-spin" />
                                         ) : (
                                             <>
-                                                <Plus className="w-4 h-4" />
-                                                <span>Add</span>
+                                                <Plus className="w-5 h-5 sm:w-4 sm:h-4" />
+                                                <span className="hidden sm:inline">Add</span>
                                             </>
                                         )}
                                     </button>

@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Flame, Loader2, Sparkles, Search, X } from "lucide-react";
+import { Flame, Loader2, Sparkles, Search, X, ShoppingBag } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { MobileProductCard } from "@/components/MobileProductCard";
+import { useCart } from "@/context/CartContext";
 
 // Types
 interface Category {
@@ -34,13 +36,13 @@ interface GroupedProducts {
 }
 
 export default function MobileMenuSection() {
+    const { cartCount, cartTotal } = useCart();
     const [groupedProducts, setGroupedProducts] = useState<GroupedProducts[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [activeCategory, setActiveCategory] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
-    const [isSearchOpen, setIsSearchOpen] = useState(false);
 
     // Refs
     const sectionRefs = useRef<Map<string, HTMLElement>>(new Map());
@@ -214,38 +216,26 @@ export default function MobileMenuSection() {
                     Handcrafted with premium ingredients, grilled to perfection.
                 </p>
 
-                {/* Search Toggle + Bar */}
+                {/* Search Bar */}
                 <div className="mt-4 max-w-md mx-auto">
-                    {isSearchOpen ? (
-                        <div className="flex items-center gap-2 bg-zinc-900/90 border border-zinc-700 rounded-full px-4 py-2.5 backdrop-blur-md animate-fade-in-up">
-                            <Search className="w-4 h-4 text-zinc-500 flex-shrink-0" />
-                            <input
-                                type="text"
-                                placeholder="Search menu items..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                autoFocus
-                                className="flex-1 bg-transparent text-white text-sm placeholder-zinc-500 outline-none"
-                            />
+                    <div className="flex items-center gap-2 bg-zinc-900/90 border border-zinc-700 rounded-full px-4 py-2.5 backdrop-blur-md">
+                        <Search className="w-4 h-4 text-zinc-500 flex-shrink-0" />
+                        <input
+                            type="text"
+                            placeholder="Search menu items..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="flex-1 bg-transparent text-white text-sm placeholder-zinc-500 outline-none"
+                        />
+                        {searchQuery && (
                             <button
-                                onClick={() => {
-                                    setSearchQuery("");
-                                    setIsSearchOpen(false);
-                                }}
+                                onClick={() => setSearchQuery("")}
                                 className="w-7 h-7 flex items-center justify-center text-zinc-400 hover:text-white rounded-full hover:bg-zinc-800 transition-colors"
                             >
                                 <X className="w-4 h-4" />
                             </button>
-                        </div>
-                    ) : (
-                        <button
-                            onClick={() => setIsSearchOpen(true)}
-                            className="inline-flex items-center gap-2 px-5 py-2.5 bg-zinc-900/60 border border-zinc-800 rounded-full text-zinc-500 text-sm hover:border-zinc-700 hover:text-zinc-400 transition-all"
-                        >
-                            <Search className="w-4 h-4" />
-                            Search menu...
-                        </button>
-                    )}
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -308,15 +298,42 @@ export default function MobileMenuSection() {
             )}
 
             {/* Content Area */}
-            <div className="relative z-10 max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pb-24">
+            <div className={`relative z-10 max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 sm:pb-24 ${cartCount > 0 ? 'pb-36' : 'pb-24'}`}>
                 {/* Loading State */}
                 {loading && (
-                    <div className="flex flex-col justify-center items-center py-32 gap-4">
-                        <div className="relative">
-                            <div className="w-14 h-14 border-4 border-zinc-800 rounded-full" />
-                            <div className="absolute top-0 left-0 w-14 h-14 border-4 border-orange-500 rounded-full border-t-transparent animate-spin" />
-                        </div>
-                        <p className="text-zinc-400 text-sm">Loading delicious items...</p>
+                    <div className="space-y-8 mt-4">
+                        {[1, 2].map((section) => (
+                            <div key={section}>
+                                {/* Category header skeleton */}
+                                <div className="flex items-center gap-3 mb-4 px-1">
+                                    <div className="w-1 h-6 bg-zinc-800 rounded-full" />
+                                    <div>
+                                        <div className="h-5 w-32 bg-zinc-800 rounded-lg animate-pulse" />
+                                        <div className="h-3 w-16 bg-zinc-800/60 rounded mt-1.5 animate-pulse" />
+                                    </div>
+                                </div>
+                                {/* Card skeletons */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+                                    {[1, 2, 3].map((card) => (
+                                        <div key={card} className="bg-zinc-900/80 border border-zinc-800 rounded-2xl overflow-hidden">
+                                            <div className="flex flex-row sm:flex-col">
+                                                <div className="w-[104px] h-[104px] m-2 rounded-xl sm:w-full sm:h-auto sm:aspect-[4/3] sm:m-0 sm:rounded-none bg-zinc-800 animate-pulse flex-shrink-0" />
+                                                <div className="flex-1 p-3 sm:p-4 flex flex-col justify-between">
+                                                    <div>
+                                                        <div className="h-4 w-3/4 bg-zinc-800 rounded-md animate-pulse" />
+                                                        <div className="h-3 w-full bg-zinc-800/60 rounded-md mt-2 animate-pulse" />
+                                                    </div>
+                                                    <div className="flex items-center justify-between mt-3">
+                                                        <div className="h-5 w-24 bg-zinc-800 rounded-md animate-pulse" />
+                                                        <div className="w-10 h-10 sm:w-16 sm:h-9 bg-zinc-800 rounded-full sm:rounded-xl animate-pulse" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 )}
 
@@ -410,6 +427,30 @@ export default function MobileMenuSection() {
                     </div>
                 )}
             </div>
+
+            {/* Floating Cart Bar — Mobile Only */}
+            {cartCount > 0 && (
+                <div className="fixed bottom-0 left-0 right-0 z-50 p-3 sm:hidden" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
+                    <Link href="/cart">
+                        <div className="bg-gradient-to-r from-orange-500 to-red-600 rounded-2xl py-3.5 px-5 flex items-center justify-between shadow-2xl shadow-orange-500/30 active:scale-[0.97] transition-transform duration-200">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                                    <ShoppingBag className="w-4 h-4 text-white" />
+                                </div>
+                                <span className="font-semibold text-white text-sm">{cartCount} {cartCount === 1 ? 'item' : 'items'}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="font-bold text-white">LKR {cartTotal.toLocaleString()}</span>
+                                <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
+                                    <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </Link>
+                </div>
+            )}
         </section>
     );
 }
