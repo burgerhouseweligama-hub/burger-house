@@ -175,7 +175,7 @@ export async function seedMockData(): Promise<void> {
                     image: item.image,
                     isAvailable: true
                 };
-            }).filter(item => item.category); // Only keep items with valid categories
+            }).filter(item => item.category);
 
             console.log('Seeding Burger House menu items...');
             const productBulkOps = productsToInsert.map(item => ({
